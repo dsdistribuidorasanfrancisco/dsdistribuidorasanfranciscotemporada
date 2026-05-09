@@ -1,12 +1,9 @@
 // api/og.js — Genera meta tags Open Graph por producto
-// Detecta si es un bot (Linktree, WhatsApp, Facebook) o usuario real
+// Busca el producto en Firebase Realtime Database por slug
+// Compatible con Vercel Serverless Functions (ES Module)
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   const slug = (req.query.slug || "").toLowerCase().trim();
-  const title = req.query.title || "";
-  const image = req.query.img || "";
-  const price = req.query.price || "";
-  const desc = req.query.desc || "";
 
   const STORE_NAME = "DS Distribuidora San Francisco Temporada";
   const baseUrl = "https://" + req.headers.host;
@@ -17,23 +14,64 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const pageUrl = baseUrl + "/" + slug;
-  const ogTitle = title || STORE_NAME;
-  const ogDesc = desc || (price ? "Q" + price + " — " + STORE_NAME : STORE_NAME);
-  const ogImage = image || "";
-
-  // Detectar si es un bot de redes sociales o Linktree
+  // ── Detectar bot ────────────────────────────────────────────────
   const ua = (req.headers["user-agent"] || "").toLowerCase();
   const isBot = /facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|slack|discord|pinterest|linktree|crawl|bot|spider|preview|fetch|curl|python/i.test(ua);
 
   if (!isBot) {
-    // Usuario real — redirigir directo al SPA con el slug
+    // Usuario real → redirigir al SPA
     res.setHeader("Location", "/?producto_slug=" + encodeURIComponent(slug));
     res.status(302).end();
     return;
   }
 
-  // Bot — devolver HTML con meta tags completos
+  // ── Buscar producto en Firebase ─────────────────────────────────
+  const FIREBASE_URL = "https://dsdistribuidorasfctemporada-default-rtdb.firebaseio.com/products.json";
+
+  let ogTitle = STORE_NAME;
+  let ogDesc = STORE_NAME;
+  let ogImage = "";
+  let ogPrice = "";
+
+  try {
+    const fbRes = await fetch(FIREBASE_URL);
+    if (fbRes.ok) {
+      const data = await fbRes.json();
+      if (data) {
+        // Buscar el producto cuyo slug coincida
+        const productos = Object.values(data);
+        const producto = productos.find(p => {
+          // Intentar con el campo slug directo
+          if (p.slug && p.slug.toLowerCase() === slug) return true;
+          // O generar slug desde el nombre
+          if (p.name) {
+            const generado = p.name.toLowerCase()
+              .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-|-$/g, "");
+            if (generado === slug) return true;
+          }
+          return false;
+        });
+
+        if (producto) {
+          ogTitle = producto.name || STORE_NAME;
+          ogPrice = producto.price || "";
+          const priceStr = ogPrice ? "Q" + ogPrice + " — " : "";
+          ogDesc = (producto.desc && producto.desc.trim()) ? producto.desc : (priceStr + STORE_NAME);
+          // Campo de imagen: imgUrl (principal), luego fallbacks
+          ogImage = producto.imgUrl || producto.img || "";
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error consultando Firebase:", err);
+    // Continuar con valores por defecto — mejor que un 500
+  }
+
+  const pageUrl = baseUrl + "/" + slug;
+
+  // ── Devolver HTML con meta tags OG ─────────────────────────────
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -46,15 +84,15 @@ module.exports = async (req, res) => {
 <meta property="og:title" content="${ogTitle}">
 <meta property="og:description" content="${ogDesc}">
 <meta property="og:site_name" content="${STORE_NAME}">
-${ogImage ? '<meta property="og:image" content="' + ogImage + '">
+${ogImage ? `<meta property="og:image" content="${ogImage}">
 <meta property="og:image:width" content="800">
-<meta property="og:image:height" content="800">' : ""}
-${price ? '<meta property="og:price:amount" content="' + price + '">
-<meta property="og:price:currency" content="GTQ">' : ""}
+<meta property="og:image:height" content="800">` : ""}
+${ogPrice ? `<meta property="og:price:amount" content="${ogPrice}">
+<meta property="og:price:currency" content="GTQ">` : ""}
 <meta name="twitter:card" content="${ogImage ? "summary_large_image" : "summary"}">
 <meta name="twitter:title" content="${ogTitle}">
 <meta name="twitter:description" content="${ogDesc}">
-${ogImage ? '<meta name="twitter:image" content="' + ogImage + '">' : ""}
+${ogImage ? `<meta name="twitter:image" content="${ogImage}">` : ""}
 </head>
 <body><p>Cargando...</p></body>
 </html>`;
@@ -62,4 +100,4 @@ ${ogImage ? '<meta name="twitter:image" content="' + ogImage + '">' : ""}
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", "s-maxage=3600");
   res.status(200).send(html);
-};
+}
