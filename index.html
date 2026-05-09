@@ -1109,8 +1109,12 @@ function init(){
     const pathParts = decodeURIComponent(window.location.pathname).split("/").filter(Boolean);
     if(pathParts.length > 0) targetSlug = pathParts[pathParts.length - 1];
     if(!targetSlug){
-      const qp = new URLSearchParams(window.location.search).get("producto");
-      if(qp) targetSlug = toSlug(qp);
+      const qp = new URLSearchParams(window.location.search).get("producto_slug");
+      if(qp) targetSlug = qp;
+    }
+    if(!targetSlug){
+      const qp2 = new URLSearchParams(window.location.search).get("producto");
+      if(qp2) targetSlug = toSlug(qp2);
     }
     if(!targetSlug) return;
 
