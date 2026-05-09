@@ -1080,6 +1080,34 @@ function init(){
   renderShop(); updateCartCount();
   document.getElementById("loadingOverlay").classList.remove("show");
 
+  // Auto-resaltar producto si viene en la URL (slug o parámetro legacy)
+  (function autoHighlightFromURL(){
+    let targetSlug = "";
+    const pathSlug = decodeURIComponent(window.location.pathname).split("/").filter(Boolean).pop()||"";
+    if(pathSlug && pathSlug.includes("-")) targetSlug = pathSlug;
+    if(!targetSlug){
+      const qp = new URLSearchParams(window.location.search).get("producto");
+      if(qp) targetSlug = toSlug(qp);
+    }
+    if(!targetSlug) return;
+    const found = products.find(p => toSlug(p.name) === targetSlug);
+    if(!found) return;
+    setTimeout(()=>{
+      const allFiltered = products;
+      const pos = allFiltered.findIndex(p=>toSlug(p.name)===targetSlug);
+      if(pos<0) return;
+      const page = Math.floor(pos/PAGE_SIZE)+1;
+      if(page!==currentPage){currentPage=page;renderShop();}
+      const targetCard = document.querySelectorAll(".product-card")[pos % PAGE_SIZE];
+      if(targetCard){
+        targetCard.scrollIntoView({behavior:"smooth",block:"center"});
+        targetCard.style.outline="3px solid var(--accent)";
+        targetCard.style.boxShadow="0 0 0 6px rgba(99,102,241,0.15)";
+        setTimeout(()=>{targetCard.style.outline="";targetCard.style.boxShadow="";},3000);
+      }
+    },400);
+  })();
+
   // Escuchar cambios en tiempo real (para todos los visitantes)
   if(window._fb && window._fb.ready()){
     window._fb.watchProducts(arr=>{
@@ -2075,14 +2103,26 @@ function parseCSVRow(line){
 let _toastTimer;
 let _sharePopupTimer;
 
+function toSlug(str){
+  return (str||"")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"") // quitar tildes
+    .replace(/[^a-z0-9\s-]/g,"")   // solo letras, números, espacios y guiones
+    .trim()
+    .replace(/\s+/g,"-")            // espacios → guiones
+    .replace(/-+/g,"-");            // guiones dobles → uno
+}
+
 function shareProduct(id, event) {
   event.stopPropagation();
   const p = products.find(x => x.id === id);
   if (!p) return;
-  const url = window.location.href.split('?')[0] + '?producto=' + encodeURIComponent(p.name);
+  const slug = toSlug(p.name);
+  const base = window.location.href.split('?')[0].replace(/\/$/,"");
+  const url = base + "/" + slug;
   const shareData = {
     title: p.name,
-    text: '¡Mira este producto! ' + p.name + ' - Q' + (p.price||0).toFixed(2),
+    text: p.name + " - Q" + (p.price||0).toFixed(2),
     url: url
   };
   const showSharePopup = (msg) => {
