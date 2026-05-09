@@ -1,5 +1,5 @@
-// api/og.js — Genera meta tags Open Graph sin consultar Firebase
-// Los datos del producto se pasan como query params desde el cliente
+// api/og.js — Genera meta tags Open Graph por producto
+// Detecta si es un bot (Linktree, WhatsApp, Facebook) o usuario real
 
 module.exports = async (req, res) => {
   const slug = (req.query.slug || "").toLowerCase().trim();
@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
   const desc = req.query.desc || "";
 
   const STORE_NAME = "DS Distribuidora San Francisco Temporada";
-  const baseUrl = `https://${req.headers.host}`;
+  const baseUrl = "https://" + req.headers.host;
 
   if (!slug) {
     res.setHeader("Location", "/");
@@ -17,11 +17,23 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const pageUrl = `${baseUrl}/${slug}`;
+  const pageUrl = baseUrl + "/" + slug;
   const ogTitle = title || STORE_NAME;
-  const ogDesc = desc || (price ? `Q${price} — ${STORE_NAME}` : STORE_NAME);
+  const ogDesc = desc || (price ? "Q" + price + " — " + STORE_NAME : STORE_NAME);
   const ogImage = image || "";
 
+  // Detectar si es un bot de redes sociales o Linktree
+  const ua = (req.headers["user-agent"] || "").toLowerCase();
+  const isBot = /facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|slack|discord|pinterest|linktree|crawl|bot|spider|preview|fetch|curl|python/i.test(ua);
+
+  if (!isBot) {
+    // Usuario real — redirigir directo al SPA con el slug
+    res.setHeader("Location", "/?producto_slug=" + encodeURIComponent(slug));
+    res.status(302).end();
+    return;
+  }
+
+  // Bot — devolver HTML con meta tags completos
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -34,22 +46,17 @@ module.exports = async (req, res) => {
 <meta property="og:title" content="${ogTitle}">
 <meta property="og:description" content="${ogDesc}">
 <meta property="og:site_name" content="${STORE_NAME}">
-${ogImage ? `<meta property="og:image" content="${ogImage}">
+${ogImage ? '<meta property="og:image" content="' + ogImage + '">
 <meta property="og:image:width" content="800">
-<meta property="og:image:height" content="800">` : ""}
-${price ? `<meta property="og:price:amount" content="${price}">
-<meta property="og:price:currency" content="GTQ">` : ""}
+<meta property="og:image:height" content="800">' : ""}
+${price ? '<meta property="og:price:amount" content="' + price + '">
+<meta property="og:price:currency" content="GTQ">' : ""}
 <meta name="twitter:card" content="${ogImage ? "summary_large_image" : "summary"}">
 <meta name="twitter:title" content="${ogTitle}">
 <meta name="twitter:description" content="${ogDesc}">
-${ogImage ? `<meta name="twitter:image" content="${ogImage}">` : ""}
-<script>
-  var slug = decodeURIComponent(window.location.pathname.split("/").filter(Boolean).pop() || "");
-  if(slug) { window.location.replace("/?producto_slug=" + encodeURIComponent(slug)); }
-  else { window.location.replace("/"); }
-</script>
+${ogImage ? '<meta name="twitter:image" content="' + ogImage + '">' : ""}
 </head>
-<body><p style="font-family:sans-serif;text-align:center;padding:2rem">Cargando...</p></body>
+<body><p>Cargando...</p></body>
 </html>`;
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
