@@ -1,5 +1,4 @@
 // api/og.js — Genera meta tags Open Graph por producto
-// Busca el producto en Firebase Realtime Database por slug
 
 module.exports = async (req, res) => {
   const slug = (req.query.slug || "").toLowerCase().trim();
@@ -9,16 +8,6 @@ module.exports = async (req, res) => {
 
   if (!slug) {
     res.setHeader("Location", "/");
-    res.status(302).end();
-    return;
-  }
-
-  // ── Detectar bot ────────────────────────────────────────────────
-  const ua = (req.headers["user-agent"] || "").toLowerCase();
-  const isBot = !ua || /facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|slack|discord|pinterest|linktree|opengraph|iframely|embedly|rogerbot|crawl|bot|spider|preview|fetch|curl|python|scrapy|node-fetch|axios|got|wget/i.test(ua);
-
-  if (!isBot) {
-    res.setHeader("Location", "/?producto_slug=" + encodeURIComponent(slug));
     res.status(302).end();
     return;
   }
@@ -52,7 +41,7 @@ module.exports = async (req, res) => {
         if (producto) {
           ogTitle = producto.name || STORE_NAME;
           ogPrice = producto.price || "";
-          const priceStr = ogPrice ? "Q" + ogPrice + " — " : "";
+          const priceStr = ogPrice ? "Q" + ogPrice + " \u2014 " : "";
           ogDesc = (producto.desc && producto.desc.trim()) ? producto.desc : (priceStr + STORE_NAME);
           ogImage = producto.imgUrl || producto.img || "";
         }
@@ -63,7 +52,10 @@ module.exports = async (req, res) => {
   }
 
   const pageUrl = baseUrl + "/" + slug;
+  const redirectUrl = "/?producto_slug=" + encodeURIComponent(slug);
 
+  // Siempre devolver HTML con meta tags OG
+  // El redirect para usuarios reales se hace con JS y meta refresh
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -71,6 +63,7 @@ module.exports = async (req, res) => {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${ogTitle}</title>
 <meta name="description" content="${ogDesc}">
+<meta http-equiv="refresh" content="0;url=${redirectUrl}">
 <meta property="og:type" content="product">
 <meta property="og:url" content="${pageUrl}">
 <meta property="og:title" content="${ogTitle}">
@@ -83,7 +76,10 @@ ${ogPrice ? '<meta property="og:price:amount" content="' + ogPrice + '">\n<meta 
 <meta name="twitter:description" content="${ogDesc}">
 ${ogImage ? '<meta name="twitter:image" content="' + ogImage + '">' : ""}
 </head>
-<body><p>Cargando...</p></body>
+<body>
+<script>window.location.replace("${redirectUrl}");</script>
+<p>Cargando...</p>
+</body>
 </html>`;
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
