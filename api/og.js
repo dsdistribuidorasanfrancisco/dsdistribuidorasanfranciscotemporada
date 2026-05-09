@@ -1,8 +1,7 @@
 // api/og.js — Genera meta tags Open Graph por producto
 // Busca el producto en Firebase Realtime Database por slug
-// Compatible con Vercel Serverless Functions (ES Module)
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   const slug = (req.query.slug || "").toLowerCase().trim();
 
   const STORE_NAME = "DS Distribuidora San Francisco Temporada";
@@ -19,7 +18,6 @@ export default async function handler(req, res) {
   const isBot = !ua || /facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|slack|discord|pinterest|linktree|opengraph|iframely|embedly|rogerbot|crawl|bot|spider|preview|fetch|curl|python|scrapy|node-fetch|axios|got|wget/i.test(ua);
 
   if (!isBot) {
-    // Usuario real → redirigir al SPA
     res.setHeader("Location", "/?producto_slug=" + encodeURIComponent(slug));
     res.status(302).end();
     return;
@@ -38,12 +36,9 @@ export default async function handler(req, res) {
     if (fbRes.ok) {
       const data = await fbRes.json();
       if (data) {
-        // Buscar el producto cuyo slug coincida
         const productos = Object.values(data);
         const producto = productos.find(p => {
-          // Intentar con el campo slug directo
           if (p.slug && p.slug.toLowerCase() === slug) return true;
-          // O generar slug desde el nombre
           if (p.name) {
             const generado = p.name.toLowerCase()
               .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -59,19 +54,16 @@ export default async function handler(req, res) {
           ogPrice = producto.price || "";
           const priceStr = ogPrice ? "Q" + ogPrice + " — " : "";
           ogDesc = (producto.desc && producto.desc.trim()) ? producto.desc : (priceStr + STORE_NAME);
-          // Campo de imagen: imgUrl (principal), luego fallbacks
           ogImage = producto.imgUrl || producto.img || "";
         }
       }
     }
   } catch (err) {
     console.error("Error consultando Firebase:", err);
-    // Continuar con valores por defecto — mejor que un 500
   }
 
   const pageUrl = baseUrl + "/" + slug;
 
-  // ── Devolver HTML con meta tags OG ─────────────────────────────
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -84,15 +76,12 @@ export default async function handler(req, res) {
 <meta property="og:title" content="${ogTitle}">
 <meta property="og:description" content="${ogDesc}">
 <meta property="og:site_name" content="${STORE_NAME}">
-${ogImage ? `<meta property="og:image" content="${ogImage}">
-<meta property="og:image:width" content="800">
-<meta property="og:image:height" content="800">` : ""}
-${ogPrice ? `<meta property="og:price:amount" content="${ogPrice}">
-<meta property="og:price:currency" content="GTQ">` : ""}
+${ogImage ? '<meta property="og:image" content="' + ogImage + '">\n<meta property="og:image:width" content="800">\n<meta property="og:image:height" content="800">' : ""}
+${ogPrice ? '<meta property="og:price:amount" content="' + ogPrice + '">\n<meta property="og:price:currency" content="GTQ">' : ""}
 <meta name="twitter:card" content="${ogImage ? "summary_large_image" : "summary"}">
 <meta name="twitter:title" content="${ogTitle}">
 <meta name="twitter:description" content="${ogDesc}">
-${ogImage ? `<meta name="twitter:image" content="${ogImage}">` : ""}
+${ogImage ? '<meta name="twitter:image" content="' + ogImage + '">' : ""}
 </head>
 <body><p>Cargando...</p></body>
 </html>`;
@@ -100,4 +89,4 @@ ${ogImage ? `<meta name="twitter:image" content="${ogImage}">` : ""}
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", "s-maxage=3600");
   res.status(200).send(html);
-}
+};
