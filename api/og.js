@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   // ── Detectar bot ────────────────────────────────────────────────
   const ua = (req.headers["user-agent"] || "").toLowerCase();
-  const isBot = /facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|slack|discord|pinterest|linktree|crawl|bot|spider|preview|fetch|curl|python/i.test(ua);
+  const isBot = !ua || /facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|slack|discord|pinterest|linktree|opengraph|iframely|embedly|rogerbot|crawl|bot|spider|preview|fetch|curl|python|scrapy|node-fetch|axios|got|wget/i.test(ua);
 
   if (!isBot) {
     // Usuario real → redirigir al SPA
