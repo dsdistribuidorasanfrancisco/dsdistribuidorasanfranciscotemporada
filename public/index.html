@@ -149,6 +149,21 @@ window._fb = {
     if (!fbReady) return;
     await set(ref(db, "settings"), settings);
   },
+
+  // Geodata: departamentos, municipios, aldeas/cantones/caseríos/parajes
+  watchGeoData: (cb) => {
+    if (!fbReady) return;
+    onValue(ref(db, "geodata"), snap => { const d=snap.val(); if(d) cb(d); });
+  },
+  saveGeoData: async (data) => {
+    if (!fbReady) return;
+    await set(ref(db, "geodata"), data);
+  },
+  getGeoData: async () => {
+    if (!fbReady) return null;
+    const snap = await get(ref(db, "geodata"));
+    return snap.val();
+  },
 };
 
 // ── Disparar init cuando Firebase esté listo ──────────────────
@@ -159,8 +174,9 @@ document.addEventListener("DOMContentLoaded", () => {
     Promise.all([
       get(ref(db, "products")),
       get(ref(db, "orders")),
-      get(ref(db, "settings"))
-    ]).then(([pSnap, oSnap, sSnap]) => {
+      get(ref(db, "settings")),
+      get(ref(db, "geodata"))
+    ]).then(([pSnap, oSnap, sSnap, gSnap]) => {
       if (pSnap.val()) {
         window._fbInitProducts = Object.entries(pSnap.val()).map(([k,v])=>({_key:k,...v}));
       }
@@ -169,6 +185,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (sSnap.val()) {
         window._fbInitSettings = sSnap.val();
+      }
+      if (gSnap.val()) {
+        window._fbInitGeoData = gSnap.val();
       }
       setTimeout(() => window._appInit && window._appInit(), 100);
     }).catch(err => {
@@ -722,6 +741,7 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
     <button class="admin-tab" onclick="switchAdminTab('orders',this)">Pedidos</button>
     <button class="admin-tab" onclick="switchAdminTab('store',this)">Tienda</button>
     <button class="admin-tab" onclick="switchAdminTab('shipping',this)">Envios</button>
+    <button class="admin-tab" onclick="switchAdminTab('aldeas',this)">🗺️ Geodata</button>
   </div>
   <div class="admin-panel active" id="panel-dashboard">
     <div class="stats-grid" id="adminStats"></div>
@@ -875,12 +895,15 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
             <div class="form-group"><label>Dirección *</label><input type="text" id="psDireccion" placeholder="Ej: 5a Av. 10-20 Zona 1, Guatemala"></div>
             <div class="form-group">
               <label>Departamento</label>
-              <select id="psDept" onchange="loadPsMunicipios()" style="width:100%"><option value="">Selecciona departamento</option></select>
+              <select id="psDept" onchange="loadPsMunicipiosSelect()" style="width:100%"><option value="">Selecciona departamento</option></select>
             </div>
             <div class="form-group">
-              <label>Municipios / Aldeas donde los clientes pueden recoger *</label>
-              <div id="psMunicipiosList" style="margin-top:0.3rem"><p style="color:var(--text-muted);font-size:0.88rem">Selecciona un departamento primero</p></div>
-              <button type="button" class="btn btn-ghost" style="margin-top:0.6rem;font-size:0.82rem;padding:0.4rem 0.8rem" onclick="selectAllPsMunicipios()">Seleccionar todos municipios</button>
+              <label>Municipio *</label>
+              <select id="psMun" onchange="loadPsAldeaSelect()" style="width:100%"><option value="">Selecciona un departamento</option></select>
+            </div>
+            <div class="form-group">
+              <label>Aldea / Cantón / Caserío <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+              <select id="psAldea" style="width:100%"><option value="">Todo el municipio</option></select>
             </div>
             <button class="btn btn-primary" onclick="addPickupStore()">+ Agregar Tienda</button>
           </div>
@@ -920,6 +943,48 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
       </div>
       <button class="btn btn-save" onclick="saveShippingCost()">Guardar Configuración General</button>
       <div id="shippingZonesList" style="margin-top:2rem"></div>
+    </div>
+  </div>
+  <div class="admin-panel" id="panel-aldeas">
+    <div class="settings-card">
+      <h4>🗺️ Gestionar Geodata (Depto / Municipio / Aldeas)</h4>
+      <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:1.2rem">
+        Sube un CSV para agregar departamentos, municipios, aldeas, cantones, caseríos, parajes, etc.
+        Se guardan en <strong>Firebase</strong> y todos los clientes los verán al instante.
+      </p>
+
+      <div style="background:#f0f9ff;border:1px solid #bae0fd;border-radius:var(--radius-sm);padding:1rem;margin-bottom:1.4rem">
+        <div style="font-weight:700;font-size:0.85rem;margin-bottom:0.4rem;color:#0369a1">📋 Formato del CSV — 4 columnas</div>
+        <p style="font-size:0.82rem;color:#0369a1;margin:0 0 0.5rem">
+          <strong>departamento, municipio, tipo, nombre</strong><br>
+          <em>tipo</em>: aldea · canton · caseria · paraje · zona · colonia · barrio · sector
+        </p>
+        <code style="font-size:0.8rem;color:#075985;display:block;line-height:1.9;background:#e0f2fe;padding:0.5rem;border-radius:4px">
+          departamento,municipio,tipo,nombre<br>
+          Guatemala,Guatemala,zona,Zona 1<br>
+          Guatemala,Mixco,colonia,Lo de Bran<br>
+          Chimaltenango,Chimaltenango,aldea,El Tejar<br>
+          Huehuetenango,Chiantla,caseria,El Rancho<br>
+          Alta Verapaz,Cobán,paraje,Chamché
+        </code>
+        <button class="btn btn-ghost" style="margin-top:0.8rem;font-size:0.8rem;padding:0.4rem 0.9rem" onclick="downloadAldeaTemplate()">⬇ Descargar plantilla CSV</button>
+      </div>
+
+      <div style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:1.5rem;text-align:center;margin-bottom:1.2rem">
+        <div style="font-size:2rem;margin-bottom:0.5rem">📂</div>
+        <div style="font-weight:600;margin-bottom:0.4rem">Subir archivo CSV</div>
+        <div style="color:var(--text-muted);font-size:0.83rem;margin-bottom:1rem">Arrastra aquí o haz clic para seleccionar</div>
+        <input type="file" id="aldeaCsvInput" accept=".csv" style="display:none" onchange="handleAldeaCsv(this)">
+        <button class="btn btn-primary" style="font-size:0.85rem" onclick="document.getElementById('aldeaCsvInput').click()">Seleccionar CSV</button>
+      </div>
+
+      <div id="aldeaCsvStatus" style="display:none;margin-bottom:1rem"></div>
+      <div id="aldeaCurrentStats" style="margin-bottom:1.2rem"></div>
+
+      <div style="display:flex;gap:0.8rem;flex-wrap:wrap">
+        <button class="btn btn-save" onclick="saveAldeaData()" id="btnSaveAldeas" style="display:none">☁️ Guardar en Firebase</button>
+        <button class="btn btn-ghost" style="color:#e11d48;border-color:#fecdd3" onclick="clearAldeaData()">🗑 Borrar toda la geodata</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1047,9 +1112,9 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
 <div class="toast" id="toast"></div>
 
 <script>
-const GT_DATA = {"Guatemala": ["Guatemala", "Santa Catarina Pinula", "San José Pinula", "Chuarrancho", "Fraijanes", "Amatitlán", "Mixco", "Petapa", "San Juan Sacatepéquez", "San Raimundo", "Chinautla", "San Pedro Ayampuc", "Palencia", "San Miguel Petapa", "Villa Nueva", "Villa Canales", "Pueblo Nuevo Viñas", "San Pedro Sacatepéquez", "San Pablo Jocopilas", "Ulloa"], "El Progreso": ["Guastatoya", "Morazán", "San Agustín Acasaguastlán", "San Cristóbal Acasaguastlán", "El Jícaro", "Sansare", "Sanarate", "San Antonio La Paz"], "Sacatepéquez": ["Antigua Guatemala", "Jocotenango", "Pastores", "Sumpango", "Santo Domingo Xenacoj", "Santiago Sacatepéquez", "San Bartolomé Milpas Altas", "San Lucas Sacatepéquez", "Santa Lucía Milpas Altas", "Magdalena Milpas Altas", "Santa María de Jesús", "Ciudad Vieja", "San Miguel Dueñas", "Alotenango", "San Antonio Aguas Calientes", "Santa Catarina Barahona"], "Chimaltenango": ["Chimaltenango", "San José Poaquil", "San Martín Jilotepeque", "Comalapa", "Santa Apolonia", "Tecpán Guatemala", "Patzún", "Pochuta", "Patzicía", "Santa Cruz Balanyá", "Acatenango", "Yepocapa", "San Andrés Itzapa", "Parramos", "Zaragoza", "El Tejar"], "Escuintla": ["Escuintla", "Santa Lucía Cotzumalguapa", "La Democracia", "Siquinalá", "Masagua", "Tiquisate", "La Gomera", "Guanagazapa", "San José", "Iztapa", "Palín", "San Vicente Pacaya", "Nueva Concepción", "Taxisco"], "Santa Rosa": ["Cuilapa", "Barberena", "Santa Rosa de Lima", "Casillas", "San Rafael Las Flores", "Oratorio", "San Juan Tecuaco", "Chiquimulilla", "Taxisco", "Santa María Ixhuatán", "Guazacapán", "Santa Cruz Naranjo", "Pueblo Nuevo Viñas", "Nueva Santa Rosa"], "Sololá": ["Sololá", "San José Chacayá", "Santa María Visitación", "Santa Lucía Utatlán", "Nahualá", "Santa Catarina Ixtahuacán", "Santa Clara La Laguna", "Concepción", "San Andrés Semetabaj", "Panajachel", "Santa Catarina Palopó", "San Antonio Palopó", "San Lucas Tolimán", "Santa Cruz La Laguna", "San Pablo La Laguna", "San Marcos La Laguna", "San Juan La Laguna", "San Pedro La Laguna", "Santiago Atitlán"], "Totonicapán": ["Totonicapán", "San Cristóbal Totonicapán", "San Francisco El Alto", "San Andrés Xecul", "Momostenango", "Santa María Chiquimula", "Santa Lucía La Reforma", "San Bartolo Aguas Calientes"], "Quetzaltenango": ["Quetzaltenango", "Salcajá", "Olintepeque", "San Carlos Sija", "Sibilia", "Cabricán", "Cajolá", "San Miguel Sigüilá", "Ostuncalco", "San Mateo", "Concepción Chiquirichapa", "San Martín Sacatepéquez", "Almolonga", "Cantel", "Huitán", "Zunil", "Colomba Costa Cuca", "San Francisco La Unión", "El Palmar", "Coatepeque", "Génova", "Flores Costa Cuca", "La Esperanza", "Palestina de Los Altos"], "Suchitepéquez": ["Mazatenango", "Cuyotenango", "San Francisco Zapotitlán", "San Bernardino", "San José El Ídolo", "Santo Domingo Suchitepéquez", "San Lorenzo", "Samayac", "San Pablo Jocopilas", "San Antonio Suchitepéquez", "San Miguel Panán", "San Gabriel", "Chicacao", "Patulul", "Santa Bárbara", "San Juan Bautista", "Santo Tomás La Unión", "Zunilito", "Pueblo Nuevo", "Río Bravo", "San José La Máquina"], "Retalhuleu": ["Retalhuleu", "San Sebastián", "Santa Cruz Muluá", "San Martín Zapotitlán", "San Felipe", "San Andrés Villa Seca", "Champerico", "Nuevo San Carlos", "El Asintal"], "San Marcos": ["San Marcos", "San Pedro Sacatepéquez", "San Antonio Sacatepéquez", "Comitancillo", "San Miguel Ixtahuacán", "Concepción Tutuapa", "Tacaná", "Sibinal", "Tajumulco", "Tejutla", "San Rafael Pie de la Cuesta", "Nuevo Progreso", "El Tumbador", "El Rodeo", "Malacatán", "Catarina", "Ayutla", "Ocós", "San Pablo", "El Quetzal", "La Reforma", "Pajapita", "Ixchiguán", "San José Ojetenam", "San Cristóbal Cucho", "Sipacapa", "Esquipulas Palo Gordo", "Río Blanco", "San Lorenzo"], "Huehuetenango": ["Huehuetenango", "Chiantla", "Malacatancito", "Cuilco", "Nentón", "San Pedro Necta", "Jacaltenango", "Soloma", "Ilotenango", "Santa Bárbara", "La Libertad", "La Democracia", "San Miguel Acatán", "San Rafael La Independencia", "Todos Santos Cuchumatán", "San Juan Atitán", "Santa Eulalia", "San Mateo Ixtatán", "Colotenango", "San Sebastián Huehuetenango", "Tectitán", "Concepción Huista", "San Juan Ixcoy", "San Antonio Huista", "San Sebastián Coatán", "Santa Cruz Barillas", "Aguacatán", "San Rafael Petzal", "San Gaspar Ixchil", "Santiago Chimaltenango", "Santa Ana Huista"], "Quiché": ["Santa Cruz del Quiché", "Chiché", "Chinique", "Zacualpa", "Chajul", "Chichicastenango", "Patzité", "San Antonio Ilotenango", "San Pedro Jocopilas", "Cunén", "San Juan Cotzal", "Joyabaj", "Nebaj", "San Andrés Sajcabajá", "Uspantán", "Sacapulas", "San Bartolomé Jocotenango", "Canillá", "Chicamán", "Ixcán", "Pachalum"], "Baja Verapaz": ["Salamá", "San Miguel Chicaj", "Rabinal", "Cubulco", "Granados", "El Chol", "San Jerónimo", "Purulhá"], "Alta Verapaz": ["Cobán", "Santa Cruz Verapaz", "San Cristóbal Verapaz", "Tactic", "Tamahú", "Tucurú", "Panzós", "Senahú", "San Pedro Carchá", "San Juan Chamelco", "Lanquín", "Santa María Cahabón", "Chisec", "Chahal", "Fray Bartolomé de Las Casas", "Santa Catalina La Tinta", "Raxruhá"], "Petén": ["Flores", "San José", "San Benito", "San Andrés", "La Libertad", "San Francisco", "Santa Ana", "Dolores", "San Luis", "Sayaxché", "Melchor de Mencos", "Poptún", "Las Cruces", "El Chal"], "Izabal": ["Puerto Barrios", "Livingston", "El Estor", "Morales", "Los Amates"], "Zacapa": ["Zacapa", "Estanzuela", "Río Hondo", "Gualán", "Teculután", "Usumatlán", "Cabañas", "San Jorge", "Huité", "La Unión"], "Chiquimula": ["Chiquimula", "San José La Arada", "San Juan Ermita", "Jocotán", "Camotán", "Olopa", "Esquipulas", "Concepción Las Minas", "Quezaltepeque", "San Jacinto", "Ipala"], "Jalapa": ["Jalapa", "San Pedro Pinula", "San Luis Jilotepeque", "San Manuel Chaparrón", "San Carlos Alzatate", "Monjas", "Mataquescuintla", "San Miguel Las Flores"], "Jutiapa": ["Jutiapa", "El Progreso", "Santa Catarina Mita", "Agua Blanca", "Asunción Mita", "Yupiltepeque", "Atescatempa", "Jerez", "El Adelanto", "Zapotitlán", "Comapa", "Jalpatagua", "Conguaco", "Moyuta", "Pasaco", "San José Acatempa", "Quesada"]};
+let GT_DATA = {};
 
-const GT_ALDEAS = {"Guatemala":{"Guatemala":["Zona 1","Zona 2","Zona 3","Zona 4","Zona 5","Zona 6","Zona 7","Zona 8","Zona 9","Zona 10","Zona 11","Zona 12","Zona 13","Zona 14","Zona 15","Zona 16","Zona 17","Zona 18","Zona 19","Zona 21"],"Mixco":["Lo de Bran","Lo de Fuentes","Lo de Coy","Lo de Rodríguez","Colonia El Milagro","Colonia Carolingia","Buena Vista","Miraflores","Ciudad San Cristóbal","Monte Real","Tierra Nueva","Sacoj"],"Villa Nueva":["Bárcenas","Villalobos","Gerona","Santa Isabel","El Frutal","Guillermo Molina","San Antonio","Rancho Santa Clara"],"Petapa":["Villa Canales","Boca del Monte","Cuchilla del Carmen"],"Amatitlán":["Calderas","El Durazno","Jocotillo","Llano de Animas","Los Humitos","Eje Quemado","Las Trojes"],"Santa Catarina Pinula":["Laguna Bermeja","El Carmen","Canalitos","Salvadora I","Salvadora II"],"San José Pinula":["Lo de China","Lo de Diéguez","Lo de Hernández","Salvadora","El Garitón"],"Fraijanes":["El Cerrito","Boca del Monte","Laguna Bermeja","Los Verdes"],"Chinautla":["Cruz Blanca","Los Chinautlecos","Tres Sabanas","El Durazno"],"San Juan Sacatepéquez":["San Pedro Sacatepéquez","Los Guates","Montufar","Estancia Grande"],"Palencia":["San Rafael el Arado","El Ciprés","Sansur"],"Villa Canales":["El Porvenir","Boca del Monte","Santa Rosita","Panorama"],"San Pedro Ayampuc":["Laguneta","El Tizate","Piedra Parada"]},"Sacatepéquez":{"Antigua Guatemala":["San Felipe de Jesús","Santa Ana","San Juan del Obispo","San Pedro Las Huertas","Ciudad Vieja","San Cristóbal El Bajo","San Cristóbal El Alto","El Hato","Los Altos"],"Jocotenango":["La Merced","San Sebastián"],"Pastores":["Aldea La Antigua","El Caj"],"Sumpango":["Rancho Alegre","Los Pinos"],"Santiago Sacatepéquez":["San Bartolomé Milpas Altas","Concepción El Chipilinar"],"San Lucas Sacatepéquez":["Santiago Sacatepéquez","San Bartolomé"]},"Chimaltenango":{"Chimaltenango":["El Tejar","San Jacinto","Buena Vista","Cerro Alto","Los Planes","La Alameda"],"Comalapa":["Panimaquin","Agua Caliente","Xenimajuyú","Xetulul"],"Tecpán Guatemala":["Xesuj","Paquip","Simajulew","Panabajal","Caquixajuyú"],"Patzún":["Xejuyup","Tierra Blanca","Panimatzalam"],"Patzicía":["Xenimajuyu","San Bernabé","Saquiyá"],"Acatenango":["San Marcos Pacoc","Panimaquin","La Soledad"],"San Andrés Itzapa":["Parramos","La Alameda","Chimachoy"],"Zaragoza":["Xetonox","Patzaj","El Rejón"],"El Tejar":["Buena Vista","Agua Caliente","La Navidad"]},"Escuintla":{"Escuintla":["San Cristóbal","El Rodeo","El Coyol","Obero","La Democracia","Sipacate"],"Santa Lucía Cotzumalguapa":["La Gomera","Madre Vieja","El Bálsamo","Cerritos"],"Palín":["Calderas","El Durazno","Los Ranchos"],"Tiquisate":["Nueva Concepción","El Semillero"],"La Gomera":["Sipacate","El Semillero"],"San Vicente Pacaya":["Calderas","San Francisco de Sales","Los Iros"]},"Santa Rosa":{"Cuilapa":["Los Planes","San Miguel","Santa Teresa","El Morán"],"Barberena":["Colmenas","El Jocotillo","Los Esclavos"],"Chiquimulilla":["Ixpaco","El Ahumado","Las Lisas"],"Taxisco":["Garita Chapina","La Barrona","Monterrico"],"Oratorio":["El Calvario","Las Crucitas"],"Nueva Santa Rosa":["Casillas","Mataquescuintla"]},"Sololá":{"Sololá":["Los Encuentros","Chacayá","Pixabaj","Chuiquel","Nahualá"],"Panajachel":["San Andrés Semetabaj","Santa Catarina Palopó","San Antonio Palopó"],"Santiago Atitlán":["Cerro de Oro","San Lucas Tolimán"],"Nahualá":["Santa Catarina Ixtahuacán","Cipresales"],"San Pedro La Laguna":["San Juan La Laguna","San Pablo La Laguna","San Marcos La Laguna"]},"Totonicapán":{"Totonicapán":["Nimasac","Chuimequená","Coxom","Chiyax","Rancho de Teja","Chipuac"],"San Cristóbal Totonicapán":["Pologüá","La Laguna"],"San Francisco El Alto":["Baquiaxá","Tuixcox","Choatalum","El Tabacal"],"Momostenango":["Santa Ana","San Vicente Buenabaj","Llanos del Pinal","Los Cipreses"],"San Andrés Xecul":["Pajuliá","La Ciénega"]},"Quetzaltenango":{"Quetzaltenango":["Salcajá","San Marcos","La Ciénaga","Concepción Chiquirichapa","El Palmar","Zona 1","Zona 2","Zona 3","Zona 4","Zona 5"],"Coatepeque":["El Quetzal","Flores Costa Cuca","Génova","El Tumbador"],"Ostuncalco":["Concepción Chiquirichapa","San Marcos La Comunidad"],"Almolonga":["Pachaj","El Baúl"],"Cantel":["Zunil","Xecam"],"Zunil":["El Recreo","Georgeana"],"La Esperanza":["Nuevo Palmar","San Marcos"]},"Suchitepéquez":{"Mazatenango":["Carretas","Caballo Blanco","Estoraque","San Lorenzo","Tahuexco"],"Chicacao":["San Miguel Panán","Patulul"],"Patulul":["Santa Bárbara","Madre Vieja"],"Santo Domingo Suchitepéquez":["Río Bravo","San José La Máquina"],"San Antonio Suchitepéquez":["Santa Bárbara","San Bernardino"]},"Retalhuleu":{"Retalhuleu":["El Asintal","Nuevo San Carlos","San Felipe","San Andrés Villa Seca"],"Champerico":["El Tulate","Manchón"],"El Asintal":["Magnolia","El Triunfo"]},"San Marcos":{"San Marcos":["San Pedro Sacatepéquez","San Antonio Sacatepéquez","Tejutla","Comitancillo"],"Malacatán":["Catarina","Pajapita","Ayutla"],"Tacaná":["Sibinal","Ixchiguán","Concepción Tutuapa"],"Tajumulco":["Toquián Grande","Toquián Chico"],"San Miguel Ixtahuacán":["Sipacapa","Comitancillo"]},"Huehuetenango":{"Huehuetenango":["Chiantla","Malacatancito","Cuilco","Los Cuchumatanes"],"Jacaltenango":["Concepción Huista","La Democracia","San Antonio Huista"],"Soloma":["San Juan Ixcoy","Santa Eulalia","San Rafael La Independencia"],"Todos Santos Cuchumatán":["San Juan Atitán","Colotenango","San Sebastián Huehuetenango"],"Santa Cruz Barillas":["Ixcán","Playa Grande"],"Aguacatán":["San Rafael Petzal","San Gaspar Ixchil"]},"Quiché":{"Santa Cruz del Quiché":["Chiché","Chinique","Patzité","San Antonio Ilotenango","Zacualpa"],"Chichicastenango":["Pachaj","Tecpán","Camanchaj","Xebaquiej"],"Nebaj":["Chajul","Cotzal","San Juan Cotzal"],"Ixcán":["Playa Grande","San Lucas","Cantabal","La Perla"],"Sacapulas":["Cunén","Uspantán"]},"Baja Verapaz":{"Salamá":["San Jerónimo","El Chol","Granados","Purulhá"],"Rabinal":["Cubulco","San Miguel Chicaj"],"San Jerónimo":["La Canoa","Chicruz","Panpacché"],"Purulhá":["Tactic","Tamahú"]},"Alta Verapaz":{"Cobán":["San Juan Chamelco","San Pedro Carchá","Santa Cruz Verapaz","San Cristóbal Verapaz","El Estor"],"San Pedro Carchá":["Lanquín","Cahabón","Senahú","Tucurú"],"Tactic":["Tamahú","Santa Cruz Verapaz"],"Panzós":["Senahú","La Tinta"],"Chisec":["Raxruhá","Fray Bartolomé de Las Casas","Chahal"],"Lanquín":["Cahabón","Santa María Cahabón"]},"Petén":{"Flores":["Santa Elena","San Benito","San Andrés","San José"],"San Benito":["La Libertad","San Francisco"],"Sayaxché":["Las Cruces","El Chal","La Libertad"],"Poptún":["San Luis","Dolores","Melchor de Mencos"]},"Izabal":{"Puerto Barrios":["Livingston","El Estor","Los Amates"],"Livingston":["El Estor","Morales"],"El Estor":["Morales","Los Amates"]},"Zacapa":{"Zacapa":["Estanzuela","Río Hondo","Gualán","Teculután","La Unión"],"Gualán":["Huité","Usumatlán","Cabañas"],"Teculután":["San Jorge","Cabañas"]},"Chiquimula":{"Chiquimula":["Esquipulas","Jocotán","Camotán","Olopa"],"Esquipulas":["Concepción Las Minas","Quezaltepeque"],"Jocotán":["Camotán","San Juan Ermita"]},"Jalapa":{"Jalapa":["San Pedro Pinula","San Luis Jilotepeque","San Manuel Chaparrón"],"Mataquescuintla":["Monjas","San Carlos Alzatate"]},"Jutiapa":{"Jutiapa":["Asunción Mita","Agua Blanca","Yupiltepeque"],"Asunción Mita":["Agua Blanca","Atescatempa"],"Jalpatagua":["Conguaco","Moyuta","Comapa"]},"El Progreso":{"Guastatoya":["Sanarate","Sansare","San Agustín Acasaguastlán"],"San Agustín Acasaguastlán":["Morazán","El Jícaro"]}};
+let GT_ALDEAS = {};
 
 
 let products=[], orders=[], cart=[];
@@ -1189,7 +1254,16 @@ function init(){
     });
   }
 }
-window._appInit = init;
+window._appInit = function(){
+  // Cargar geodata desde Firebase
+  if(window._fbInitGeoData){
+    const g=window._fbInitGeoData;
+    if(g.departamentos) GT_DATA=g.departamentos;
+    if(g.aldeas) GT_ALDEAS=g.aldeas;
+    populateDeptSelects();
+  }
+  init();
+};
 
 function applyStoreSettings(){
   const s=storeSettings;
@@ -1634,6 +1708,7 @@ function switchAdminTab(tab,el){
   if(tab==="orders") renderAdminOrders();
   if(tab==="store"){updateFbStatusBadge&&updateFbStatusBadge();populateDeptSelects();applyStoreSettings();}
   if(tab==="shipping"){populateDeptSelects();renderShippingZones();}
+  if(tab==="aldeas") renderAldeaStats();
 }
 
 function renderAdminDashboard(){
@@ -2626,15 +2701,19 @@ function addPickupStore(){
   const nombre=document.getElementById("psNombre")?.value.trim();
   const dir=document.getElementById("psDireccion")?.value.trim();
   const dept=document.getElementById("psDept")?.value;
-  const checked=[...document.querySelectorAll(".ps-mun-check:checked")].map(cb=>cb.value);
+  const mun=document.getElementById("psMun")?.value;
+  const aldea=document.getElementById("psAldea")?.value;
   if(!nombre||!dir){toast("Ingresa nombre y dirección de la tienda","error");return;}
-  if(!checked.length){toast("Selecciona al menos un municipio","error");return;}
+  if(!dept||!mun){toast("Selecciona departamento y municipio","error");return;}
+  const key=aldea?dept+"|"+mun+"|"+aldea:dept+"|"+mun;
   if(!storeSettings.pickupStores) storeSettings.pickupStores=[];
-  storeSettings.pickupStores.push({id:"ps_"+Date.now(),nombre,direccion:dir,municipios:checked});
+  storeSettings.pickupStores.push({id:"ps_"+Date.now(),nombre,direccion:dir,municipios:[key]});
   saveSettings();
   document.getElementById("psNombre").value="";
   document.getElementById("psDireccion").value="";
-  document.querySelectorAll(".ps-mun-check").forEach(cb=>cb.checked=false);
+  document.getElementById("psDept").value="";
+  document.getElementById("psMun").innerHTML="<option value=''>Selecciona un departamento</option>";
+  document.getElementById("psAldea").innerHTML="<option value=''>Todo el municipio</option>";
   renderPickupStoresAdmin();
   toast("Tienda agregada","success");
 }
@@ -2646,31 +2725,26 @@ function deletePickupStore(id){
   toast("Tienda eliminada","success");
 }
 
-function loadPsMunicipios(){
+function loadPsMunicipiosSelect(){
   const dept=document.getElementById("psDept")?.value;
-  const cont=document.getElementById("psMunicipiosList");
-  if(!cont) return;
-  if(!dept||!GT_DATA[dept]){cont.innerHTML="<p style='color:var(--text-muted);font-size:0.88rem'>Selecciona un departamento</p>";return;}
-  cont.innerHTML="<div style='display:flex;flex-direction:column;gap:0.8rem;margin-top:0.5rem'>"+
-    GT_DATA[dept].map(m=>{
-      const key=dept+"|"+m;
-      const aldeas=(GT_ALDEAS[dept]&&GT_ALDEAS[dept][m])||[];
-      const aldeaChecks=aldeas.map(a=>{
-        const akey=dept+"|"+m+"|"+a;
-        return "<label style='display:flex;align-items:center;gap:0.35rem;background:#f8fafc;border:1px solid var(--border);border-radius:100px;padding:0.25rem 0.7rem;cursor:pointer;font-size:0.8rem;font-weight:500'>"+
-          "<input type='checkbox' class='ps-mun-check' value='"+akey+"' style='accent-color:var(--accent)'>📍 "+a+"</label>";
-      }).join("");
-      return "<div style='background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.8rem'>"+
-        "<label style='display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;font-weight:700;margin-bottom:"+(aldeas.length?"0.5rem":"0")+"'>"+
-          "<input type='checkbox' class='ps-mun-check' value='"+key+"' style='accent-color:var(--accent);width:16px;height:16px'>🏙️ "+m+"</label>"+
-        (aldeas.length?"<div style='display:flex;flex-wrap:wrap;gap:0.4rem;margin-left:1.5rem'>"+aldeaChecks+"</div>":"")+
-      "</div>";
-    }).join("")+
-  "</div>";
+  const munSel=document.getElementById("psMun");
+  const aldeaSel=document.getElementById("psAldea");
+  if(!munSel) return;
+  munSel.innerHTML="<option value=''>Selecciona un departamento</option>";
+  if(aldeaSel) aldeaSel.innerHTML="<option value=''>Todo el municipio</option>";
+  if(!dept||!GT_DATA[dept]) return;
+  GT_DATA[dept].forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m;munSel.appendChild(o);});
 }
 
-function selectAllPsMunicipios(){
-  document.querySelectorAll(".ps-mun-check").forEach(cb=>cb.checked=true);
+function loadPsAldeaSelect(){
+  const dept=document.getElementById("psDept")?.value;
+  const mun=document.getElementById("psMun")?.value;
+  const aldeaSel=document.getElementById("psAldea");
+  if(!aldeaSel) return;
+  aldeaSel.innerHTML="<option value=''>Todo el municipio</option>";
+  if(!dept||!mun) return;
+  const aldeas=(GT_ALDEAS[dept]&&GT_ALDEAS[dept][mun])||[];
+  aldeas.forEach(a=>{const o=document.createElement("option");o.value=a;o.textContent=a;aldeaSel.appendChild(o);});
 }
 
 function toast(msg,type){
@@ -2680,6 +2754,125 @@ function toast(msg,type){
 }
 
 // Init manejado por el módulo Firebase arriba
+
+/* ─── GEODATA CSV → FIREBASE ─── */
+function renderAldeaStats(){
+  const cont=document.getElementById("aldeaCurrentStats"); if(!cont)return;
+  const totalMuns=Object.values(GT_ALDEAS).reduce((s,d)=>s+Object.keys(d).length,0);
+  const totalA=Object.values(GT_ALDEAS).reduce((s,d)=>s+Object.values(d).reduce((a,v)=>a+v.length,0),0);
+  const totalDepts=Object.keys(GT_DATA).length;
+  const totalMunsDepts=Object.values(GT_DATA).reduce((s,v)=>s+v.length,0);
+  const fbOk=window._fb&&window._fb.ready();
+  cont.innerHTML=`<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-sm);padding:0.9rem;font-size:0.85rem;line-height:2">
+    ${fbOk?'<span style="color:#16a34a">☁️ Firebase conectado</span>':'<span style="color:#f59e0b">⚠️ Sin Firebase</span>'}<br>
+    📍 <strong>${totalDepts}</strong> departamentos · <strong>${totalMunsDepts}</strong> municipios<br>
+    🏘️ <strong>${totalMuns}</strong> municipios con subdivisiones · <strong>${totalA}</strong> aldeas/cantones/caseríos en total
+  </div>`;
+}
+
+function handleAldeaCsv(input){
+  const file=input.files[0]; if(!file)return;
+  window._pendingDepts={};
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const lines=e.target.result.split(/\r?\n/).filter(l=>l.trim()&&!/^departamento/i.test(l));
+    const preview={}; let ok=0,bad=0;
+    lines.forEach(line=>{
+      const parts=line.split(",").map(s=>s.trim());
+      if(parts.length<3||!parts[0]||!parts[1]){bad++;return;}
+      const dept=parts[0],mun=parts[1];
+      // 4 cols: dept,mun,tipo,nombre  |  3 cols: dept,mun,nombre
+      const nombre=parts.length>=4?parts[3]:parts[2];
+      if(!nombre){bad++;return;}
+      if(!preview[dept]) preview[dept]={};
+      if(!preview[dept][mun]) preview[dept][mun]=[];
+      if(!preview[dept][mun].includes(nombre)){preview[dept][mun].push(nombre);ok++;}
+      if(!window._pendingDepts[dept]) window._pendingDepts[dept]=[];
+      if(!window._pendingDepts[dept].includes(mun)) window._pendingDepts[dept].push(mun);
+    });
+    const muns=Object.values(preview).reduce((s,d)=>s+Object.keys(d).length,0);
+    const status=document.getElementById("aldeaCsvStatus");
+    status.style.display="block";
+    if(ok===0){
+      status.innerHTML='<div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:var(--radius-sm);padding:0.8rem;font-size:0.85rem;color:#e11d48">❌ No se encontraron filas válidas. Formato: departamento,municipio,tipo,nombre</div>';
+      return;
+    }
+    status.innerHTML=`<div style="background:#f0f9ff;border:1px solid #bae0fd;border-radius:var(--radius-sm);padding:0.8rem;font-size:0.85rem">
+      📊 Vista previa: <strong>${ok}</strong> subdivisiones en <strong>${muns}</strong> municipios${bad?` · <span style="color:#f59e0b">${bad} filas ignoradas</span>`:""}
+    </div>`;
+    window._pendingAldeas=preview;
+    document.getElementById("btnSaveAldeas").style.display="inline-block";
+  };
+  reader.readAsText(file);
+}
+
+async function saveAldeaData(){
+  if(!window._pendingAldeas){toast("No hay datos para guardar","error");return;}
+  // Merge aldeas
+  for(const dept in window._pendingAldeas){
+    if(!GT_ALDEAS[dept]) GT_ALDEAS[dept]={};
+    for(const mun in window._pendingAldeas[dept]){
+      GT_ALDEAS[dept][mun]=window._pendingAldeas[dept][mun];
+    }
+  }
+  // Merge departamentos y municipios en GT_DATA
+  if(window._pendingDepts){
+    for(const dept in window._pendingDepts){
+      if(!GT_DATA[dept]) GT_DATA[dept]=[];
+      window._pendingDepts[dept].forEach(mun=>{
+        if(!GT_DATA[dept].includes(mun)) GT_DATA[dept].push(mun);
+      });
+    }
+    window._pendingDepts=null;
+  }
+  if(!window._fb||!window._fb.ready()){toast("Sin conexión a Firebase","error");return;}
+  try{
+    await window._fb.saveGeoData({departamentos:GT_DATA,aldeas:GT_ALDEAS});
+    populateDeptSelects();
+    window._pendingAldeas=null;
+    document.getElementById("btnSaveAldeas").style.display="none";
+    document.getElementById("aldeaCsvStatus").style.display="none";
+    document.getElementById("aldeaCsvInput").value="";
+    renderAldeaStats();
+    toast("Geodata guardada en Firebase ☁️","success");
+  }catch(e){toast("Error al guardar en Firebase","error");console.error(e);}
+}
+
+async function clearAldeaData(){
+  if(!confirm("¿Borrar TODA la geodata de Firebase? Los selects quedarán vacíos para todos.")) return;
+  for(const k in GT_ALDEAS) delete GT_ALDEAS[k];
+  for(const k in GT_DATA) delete GT_DATA[k];
+  if(window._fb&&window._fb.ready()){
+    try{
+      await window._fb.saveGeoData({departamentos:{},aldeas:{}});
+      toast("Geodata borrada de Firebase","success");
+    }catch(e){toast("Error al borrar en Firebase","error");}
+  }
+  populateDeptSelects();
+  renderAldeaStats();
+}
+
+function downloadAldeaTemplate(){
+  const rows=[
+    "departamento,municipio,tipo,nombre",
+    "Guatemala,Guatemala,zona,Zona 1",
+    "Guatemala,Guatemala,zona,Zona 2",
+    "Guatemala,Guatemala,zona,Zona 3",
+    "Guatemala,Mixco,colonia,Lo de Bran",
+    "Guatemala,Mixco,colonia,Lo de Fuentes",
+    "Guatemala,Villa Nueva,aldea,Bárcenas",
+    "Chimaltenango,Chimaltenango,aldea,El Tejar",
+    "Chimaltenango,Comalapa,canton,Panimaquin",
+    "Huehuetenango,Chiantla,caseria,El Rancho",
+    "Alta Verapaz,Cobán,paraje,Chamché"
+  ];
+  const blob=new Blob([rows.join("\n")],{type:"text/csv"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="plantilla_geodata.csv";
+  a.click();
+}
+
 </script>
 <div id="sharePopup" class="share-popup"></div>
 
