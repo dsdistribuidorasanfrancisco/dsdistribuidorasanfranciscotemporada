@@ -894,16 +894,16 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
             <div class="form-group"><label>Nombre de la tienda *</label><input type="text" id="psNombre" placeholder="Ej: Sucursal Central, Tienda Norte..."></div>
             <div class="form-group"><label>Dirección *</label><input type="text" id="psDireccion" placeholder="Ej: 5a Av. 10-20 Zona 1, Guatemala"></div>
             <div class="form-group">
-              <label>Departamento</label>
-              <select id="psDept" onchange="loadPsMunicipiosSelect()" style="width:100%"><option value="">Selecciona departamento</option></select>
+              <label>Aldea / Cantón / Caserío <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+              <select id="psAldea" style="width:100%"><option value="">Todo el municipio</option></select>
             </div>
             <div class="form-group">
               <label>Municipio *</label>
               <select id="psMun" onchange="loadPsAldeaSelect()" style="width:100%"><option value="">Selecciona un departamento</option></select>
             </div>
             <div class="form-group">
-              <label>Aldea / Cantón / Caserío <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-              <select id="psAldea" style="width:100%"><option value="">Todo el municipio</option></select>
+              <label>Departamento</label>
+              <select id="psDept" onchange="loadPsMunicipiosSelect()" style="width:100%"><option value="">Selecciona departamento</option></select>
             </div>
             <button class="btn btn-primary" onclick="addPickupStore()">+ Agregar Tienda</button>
           </div>
@@ -930,9 +930,9 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
     <div class="settings-card">
       <h4>Costo de Envío por Municipio</h4>
       <div style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:flex-end">
-        <div class="form-group" style="margin:0;flex:1;min-width:140px"><label>Departamento</label><select id="shippingDept" onchange="onShippingDeptChange()" style="width:100%"><option value="">Selecciona</option></select></div>
-        <div class="form-group" style="margin:0;flex:1;min-width:140px"><label>Municipio</label><select id="shippingMun" onchange="onShippingMunChange()" style="width:100%"><option value="">Selecciona dept.</option></select></div>
         <div class="form-group" style="margin:0;flex:1;min-width:160px"><label>Aldea / Cantón <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label><select id="shippingAldea" style="width:100%"><option value="">Todo el municipio</option></select></div>
+        <div class="form-group" style="margin:0;flex:1;min-width:140px"><label>Municipio</label><select id="shippingMun" onchange="onShippingMunChange()" style="width:100%"><option value="">Selecciona dept.</option></select></div>
+        <div class="form-group" style="margin:0;flex:1;min-width:140px"><label>Departamento</label><select id="shippingDept" onchange="onShippingDeptChange()" style="width:100%"><option value="">Selecciona</option></select></div>
         <div class="form-group" style="margin:0;flex:1;min-width:100px"><label>Costo Q</label><input type="number" id="shippingCost" min="0" step="1" placeholder="0"></div>
         <button class="btn btn-primary" onclick="addShippingZone()" style="width:100%; margin-top:0.5rem">+ Agregar Zona</button>
       </div>
@@ -1053,9 +1053,9 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
     <h3>Confirmar Pedido</h3>
     <div class="form-group"><label>Nombre Completo *</label><input type="text" id="buyerName" placeholder="Tu nombre completo"></div>
     <div class="form-group"><label>Contacto (teléfono o email) *</label><input type="text" id="buyerContact" placeholder="5555-1234"></div>
-    <div class="form-group"><label>Departamento *</label><select id="buyerDept" onchange="loadMunicipios()"><option value="">Selecciona</option></select></div>
-    <div class="form-group"><label>Municipio *</label><select id="buyerMun" onchange="onBuyerMunChange()"><option value="">Selecciona dept. primero</option></select></div>
     <div class="form-group"><label>Aldea / Cantón / Sector <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label><select id="buyerAldea" onchange="updateCheckoutTotal()" style="width:100%"><option value="">Todo el municipio / Cabecera</option></select></div>
+    <div class="form-group"><label>Municipio *</label><select id="buyerMun" onchange="onBuyerMunChange()"><option value="">Selecciona dept. primero</option></select></div>
+    <div class="form-group"><label>Departamento *</label><select id="buyerDept" onchange="loadMunicipios()"><option value="">Selecciona</option></select></div>
     <div class="form-group"><label>Dirección (opcional)</label><input type="text" id="buyerAddress" placeholder="Calle, colonia, referencia..."></div>
     <div class="form-group"><label>Notas (opcional)</label><textarea id="buyerNotes" placeholder="Instrucciones especiales..."></textarea></div>
     <div id="checkoutItemsDiv" class="checkout-items-summary"></div>
