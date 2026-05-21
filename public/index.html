@@ -150,7 +150,7 @@ window._fb = {
     await set(ref(db, "settings"), settings);
   },
 
-  // Geodata: departamentos, municipios, aldeas/cantones/caseríos/parajes
+  // Geodata: lugares, municipios, departamentos
   watchGeoData: (cb) => {
     if (!fbReady) return;
     onValue(ref(db, "geodata"), snap => { const d=snap.val(); if(d) cb(d); });
@@ -894,7 +894,7 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
             <div class="form-group"><label>Nombre de la tienda *</label><input type="text" id="psNombre" placeholder="Ej: Sucursal Central, Tienda Norte..."></div>
             <div class="form-group"><label>Dirección *</label><input type="text" id="psDireccion" placeholder="Ej: 5a Av. 10-20 Zona 1, Guatemala"></div>
             <div class="form-group">
-              <label>Aldea / Cantón / Caserío <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+              <label>Lugar <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label>
               <select id="psAldea" style="width:100%"><option value="">Todo el municipio</option></select>
             </div>
             <div class="form-group">
@@ -930,7 +930,7 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
     <div class="settings-card">
       <h4>Costo de Envío por Municipio</h4>
       <div style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:flex-end">
-        <div class="form-group" style="margin:0;flex:1;min-width:160px"><label>Aldea / Cantón <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label><select id="shippingAldea" style="width:100%"><option value="">Todo el municipio</option></select></div>
+        <div class="form-group" style="margin:0;flex:1;min-width:160px"><label>Lugar <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label><select id="shippingAldea" style="width:100%"><option value="">Todo el municipio</option></select></div>
         <div class="form-group" style="margin:0;flex:1;min-width:140px"><label>Municipio</label><select id="shippingMun" onchange="onShippingMunChange()" style="width:100%"><option value="">Selecciona dept.</option></select></div>
         <div class="form-group" style="margin:0;flex:1;min-width:140px"><label>Departamento</label><select id="shippingDept" onchange="onShippingDeptChange()" style="width:100%"><option value="">Selecciona</option></select></div>
         <div class="form-group" style="margin:0;flex:1;min-width:100px"><label>Costo Q</label><input type="number" id="shippingCost" min="0" step="1" placeholder="0"></div>
@@ -947,25 +947,24 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
   </div>
   <div class="admin-panel" id="panel-aldeas">
     <div class="settings-card">
-      <h4>🗺️ Gestionar Geodata (Depto / Municipio / Aldeas)</h4>
+      <h4>🗺️ Gestionar Geodata (Lugar / Municipio / Depto)</h4>
       <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:1.2rem">
-        Sube un CSV para agregar departamentos, municipios, aldeas, cantones, caseríos, parajes, etc.
+        Sube un CSV para agregar lugares, municipios y departamentos.
         Se guardan en <strong>Firebase</strong> y todos los clientes los verán al instante.
       </p>
 
       <div style="background:#f0f9ff;border:1px solid #bae0fd;border-radius:var(--radius-sm);padding:1rem;margin-bottom:1.4rem">
-        <div style="font-weight:700;font-size:0.85rem;margin-bottom:0.4rem;color:#0369a1">📋 Formato del CSV — 4 columnas</div>
+        <div style="font-weight:700;font-size:0.85rem;margin-bottom:0.4rem;color:#0369a1">📋 Formato del CSV — 3 columnas</div>
         <p style="font-size:0.82rem;color:#0369a1;margin:0 0 0.5rem">
-          <strong>departamento, municipio, tipo, nombre</strong><br>
-          <em>tipo</em>: aldea · canton · caseria · paraje · zona · colonia · barrio · sector
-        </p>
+          <strong>lugar, municipio, departamento</strong><br>
+                  </p>
         <code style="font-size:0.8rem;color:#075985;display:block;line-height:1.9;background:#e0f2fe;padding:0.5rem;border-radius:4px">
-          departamento,municipio,tipo,nombre<br>
-          Guatemala,Guatemala,zona,Zona 1<br>
-          Guatemala,Mixco,colonia,Lo de Bran<br>
-          Chimaltenango,Chimaltenango,aldea,El Tejar<br>
-          Huehuetenango,Chiantla,caseria,El Rancho<br>
-          Alta Verapaz,Cobán,paraje,Chamché
+          lugar,municipio,departamento<br>
+          Xeaj,San Francisco La Unión,Quetzaltenango<br>
+          Lo de Bran,Mixco,Guatemala<br>
+          El Tejar,Chimaltenango,Chimaltenango<br>
+          El Rancho,Chiantla,Huehuetenango<br>
+          Chamché,Cobán,Alta Verapaz
         </code>
         <button class="btn btn-ghost" style="margin-top:0.8rem;font-size:0.8rem;padding:0.4rem 0.9rem" onclick="downloadAldeaTemplate()">⬇ Descargar plantilla CSV</button>
       </div>
@@ -1053,7 +1052,7 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
     <h3>Confirmar Pedido</h3>
     <div class="form-group"><label>Nombre Completo *</label><input type="text" id="buyerName" placeholder="Tu nombre completo"></div>
     <div class="form-group"><label>Contacto (teléfono o email) *</label><input type="text" id="buyerContact" placeholder="5555-1234"></div>
-    <div class="form-group"><label>Aldea / Cantón / Sector <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label><select id="buyerAldea" onchange="updateCheckoutTotal()" style="width:100%"><option value="">Todo el municipio / Cabecera</option></select></div>
+    <div class="form-group"><label>Lugar <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label><select id="buyerAldea" onchange="updateCheckoutTotal()" style="width:100%"><option value="">Todo el municipio / Cabecera</option></select></div>
     <div class="form-group"><label>Municipio *</label><select id="buyerMun" onchange="onBuyerMunChange()"><option value="">Selecciona dept. primero</option></select></div>
     <div class="form-group"><label>Departamento *</label><select id="buyerDept" onchange="loadMunicipios()"><option value="">Selecciona</option></select></div>
     <div class="form-group"><label>Dirección (opcional)</label><input type="text" id="buyerAddress" placeholder="Calle, colonia, referencia..."></div>
@@ -2767,7 +2766,7 @@ function renderAldeaStats(){
   cont.innerHTML=`<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-sm);padding:0.9rem;font-size:0.85rem;line-height:2">
     ${fbOk?'<span style="color:#16a34a">☁️ Firebase conectado</span>':'<span style="color:#f59e0b">⚠️ Sin Firebase</span>'}<br>
     📍 <strong>${totalDepts}</strong> departamentos · <strong>${totalMunsDepts}</strong> municipios<br>
-    🏘️ <strong>${totalMuns}</strong> municipios con subdivisiones · <strong>${totalA}</strong> aldeas/cantones/caseríos en total
+    🏘️ <strong>${totalMuns}</strong> municipios con lugares · <strong>${totalA}</strong> lugares en total
   </div>`;
 }
 
@@ -2776,18 +2775,16 @@ function handleAldeaCsv(input){
   window._pendingDepts={};
   const reader=new FileReader();
   reader.onload=function(e){
-    const lines=e.target.result.split(/\r?\n/).filter(l=>l.trim()&&!/^departamento/i.test(l));
+    const lines=e.target.result.split(/\r?\n/).filter(l=>l.trim()&&!/^lugar/i.test(l));
     const preview={}; let ok=0,bad=0;
     lines.forEach(line=>{
       const parts=line.split(",").map(s=>s.trim());
-      if(parts.length<3||!parts[0]||!parts[1]){bad++;return;}
-      const dept=parts[0],mun=parts[1];
-      // 4 cols: dept,mun,tipo,nombre  |  3 cols: dept,mun,nombre
-      const nombre=parts.length>=4?parts[3]:parts[2];
-      if(!nombre){bad++;return;}
+      if(parts.length<3||!parts[0]||!parts[1]||!parts[2]){bad++;return;}
+      const lugar=parts[0],mun=parts[1],dept=parts[2];
+      // 3 cols: lugar,municipio,departamento
       if(!preview[dept]) preview[dept]={};
       if(!preview[dept][mun]) preview[dept][mun]=[];
-      if(!preview[dept][mun].includes(nombre)){preview[dept][mun].push(nombre);ok++;}
+      if(!preview[dept][mun].includes(lugar)){preview[dept][mun].push(lugar);ok++;}
       if(!window._pendingDepts[dept]) window._pendingDepts[dept]=[];
       if(!window._pendingDepts[dept].includes(mun)) window._pendingDepts[dept].push(mun);
     });
@@ -2795,11 +2792,11 @@ function handleAldeaCsv(input){
     const status=document.getElementById("aldeaCsvStatus");
     status.style.display="block";
     if(ok===0){
-      status.innerHTML='<div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:var(--radius-sm);padding:0.8rem;font-size:0.85rem;color:#e11d48">❌ No se encontraron filas válidas. Formato: departamento,municipio,tipo,nombre</div>';
+      status.innerHTML='<div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:var(--radius-sm);padding:0.8rem;font-size:0.85rem;color:#e11d48">❌ No se encontraron filas válidas. Formato: lugar,municipio,departamento</div>';
       return;
     }
     status.innerHTML=`<div style="background:#f0f9ff;border:1px solid #bae0fd;border-radius:var(--radius-sm);padding:0.8rem;font-size:0.85rem">
-      📊 Vista previa: <strong>${ok}</strong> subdivisiones en <strong>${muns}</strong> municipios${bad?` · <span style="color:#f59e0b">${bad} filas ignoradas</span>`:""}
+      📊 Vista previa: <strong>${ok}</strong> lugares en <strong>${muns}</strong> municipios${bad?` · <span style="color:#f59e0b">${bad} filas ignoradas</span>`:""}
     </div>`;
     window._pendingAldeas=preview;
     document.getElementById("btnSaveAldeas").style.display="inline-block";
@@ -2843,12 +2840,12 @@ async function saveAldeaData(){
 }
 
 function exportAldeaData(){
-  const rows=["departamento,municipio,tipo,nombre"];
+  const rows=["lugar,municipio,departamento"];
   // Exportar aldeas/cantones/etc
   for(const dept in GT_ALDEAS){
     for(const mun in GT_ALDEAS[dept]){
       (GT_ALDEAS[dept][mun]||[]).forEach(nombre=>{
-        rows.push([dept,mun,"aldea",nombre].join(","));
+        rows.push([nombre,mun,dept].join(","));
       });
     }
   }
@@ -2856,7 +2853,7 @@ function exportAldeaData(){
   for(const dept in GT_DATA){
     (GT_DATA[dept]||[]).forEach(mun=>{
       const tieneAldeas=GT_ALDEAS[dept]&&GT_ALDEAS[dept][mun]&&GT_ALDEAS[dept][mun].length>0;
-      if(!tieneAldeas) rows.push([dept,mun,"municipio",""].join(","));
+      // skip municipios without lugares
     });
   }
   if(rows.length<=1){toast("No hay geodata para exportar","error");return;}
@@ -2884,7 +2881,7 @@ async function clearAldeaData(){
 
 function downloadAldeaTemplate(){
   const rows=[
-    "departamento,municipio,tipo,nombre",
+    "lugar,municipio,departamento",
     "Guatemala,Guatemala,zona,Zona 1",
     "Guatemala,Guatemala,zona,Zona 2",
     "Guatemala,Guatemala,zona,Zona 3",
