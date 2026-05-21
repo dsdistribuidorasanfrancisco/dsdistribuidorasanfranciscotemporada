@@ -878,9 +878,9 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
               <select id="psDept" onchange="loadPsMunicipios()" style="width:100%"><option value="">Selecciona departamento</option></select>
             </div>
             <div class="form-group">
-              <label>Municipios donde los clientes pueden recoger *</label>
+              <label>Municipios / Aldeas donde los clientes pueden recoger *</label>
               <div id="psMunicipiosList" style="margin-top:0.3rem"><p style="color:var(--text-muted);font-size:0.88rem">Selecciona un departamento primero</p></div>
-              <button type="button" class="btn btn-ghost" style="margin-top:0.6rem;font-size:0.82rem;padding:0.4rem 0.8rem" onclick="selectAllPsMunicipios()">Seleccionar todos</button>
+              <button type="button" class="btn btn-ghost" style="margin-top:0.6rem;font-size:0.82rem;padding:0.4rem 0.8rem" onclick="selectAllPsMunicipios()">Seleccionar todos municipios</button>
             </div>
             <button class="btn btn-primary" onclick="addPickupStore()">+ Agregar Tienda</button>
           </div>
@@ -908,7 +908,8 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
       <h4>Costo de Envío por Municipio</h4>
       <div style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:flex-end">
         <div class="form-group" style="margin:0;flex:1;min-width:140px"><label>Departamento</label><select id="shippingDept" onchange="onShippingDeptChange()" style="width:100%"><option value="">Selecciona</option></select></div>
-        <div class="form-group" style="margin:0;flex:1;min-width:140px"><label>Municipio</label><select id="shippingMun" style="width:100%"><option value="">Selecciona dept.</option></select></div>
+        <div class="form-group" style="margin:0;flex:1;min-width:140px"><label>Municipio</label><select id="shippingMun" onchange="onShippingMunChange()" style="width:100%"><option value="">Selecciona dept.</option></select></div>
+        <div class="form-group" style="margin:0;flex:1;min-width:160px"><label>Aldea / Cantón <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label><select id="shippingAldea" style="width:100%"><option value="">Todo el municipio</option></select></div>
         <div class="form-group" style="margin:0;flex:1;min-width:100px"><label>Costo Q</label><input type="number" id="shippingCost" min="0" step="1" placeholder="0"></div>
         <button class="btn btn-primary" onclick="addShippingZone()" style="width:100%; margin-top:0.5rem">+ Agregar Zona</button>
       </div>
@@ -987,7 +988,8 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
     <div class="form-group"><label>Nombre Completo *</label><input type="text" id="buyerName" placeholder="Tu nombre completo"></div>
     <div class="form-group"><label>Contacto (teléfono o email) *</label><input type="text" id="buyerContact" placeholder="5555-1234"></div>
     <div class="form-group"><label>Departamento *</label><select id="buyerDept" onchange="loadMunicipios()"><option value="">Selecciona</option></select></div>
-    <div class="form-group"><label>Municipio *</label><select id="buyerMun" onchange="renderCheckoutPaymentMethods();updateCheckoutTotal()"><option value="">Selecciona dept. primero</option></select></div>
+    <div class="form-group"><label>Municipio *</label><select id="buyerMun" onchange="onBuyerMunChange()"><option value="">Selecciona dept. primero</option></select></div>
+    <div class="form-group"><label>Aldea / Cantón / Sector <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(opcional)</span></label><select id="buyerAldea" onchange="updateCheckoutTotal()" style="width:100%"><option value="">Todo el municipio / Cabecera</option></select></div>
     <div class="form-group"><label>Dirección (opcional)</label><input type="text" id="buyerAddress" placeholder="Calle, colonia, referencia..."></div>
     <div class="form-group"><label>Notas (opcional)</label><textarea id="buyerNotes" placeholder="Instrucciones especiales..."></textarea></div>
     <div id="checkoutItemsDiv" class="checkout-items-summary"></div>
@@ -1046,6 +1048,9 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
 
 <script>
 const GT_DATA = {"Guatemala": ["Guatemala", "Santa Catarina Pinula", "San José Pinula", "Chuarrancho", "Fraijanes", "Amatitlán", "Mixco", "Petapa", "San Juan Sacatepéquez", "San Raimundo", "Chinautla", "San Pedro Ayampuc", "Palencia", "San Miguel Petapa", "Villa Nueva", "Villa Canales", "Pueblo Nuevo Viñas", "San Pedro Sacatepéquez", "San Pablo Jocopilas", "Ulloa"], "El Progreso": ["Guastatoya", "Morazán", "San Agustín Acasaguastlán", "San Cristóbal Acasaguastlán", "El Jícaro", "Sansare", "Sanarate", "San Antonio La Paz"], "Sacatepéquez": ["Antigua Guatemala", "Jocotenango", "Pastores", "Sumpango", "Santo Domingo Xenacoj", "Santiago Sacatepéquez", "San Bartolomé Milpas Altas", "San Lucas Sacatepéquez", "Santa Lucía Milpas Altas", "Magdalena Milpas Altas", "Santa María de Jesús", "Ciudad Vieja", "San Miguel Dueñas", "Alotenango", "San Antonio Aguas Calientes", "Santa Catarina Barahona"], "Chimaltenango": ["Chimaltenango", "San José Poaquil", "San Martín Jilotepeque", "Comalapa", "Santa Apolonia", "Tecpán Guatemala", "Patzún", "Pochuta", "Patzicía", "Santa Cruz Balanyá", "Acatenango", "Yepocapa", "San Andrés Itzapa", "Parramos", "Zaragoza", "El Tejar"], "Escuintla": ["Escuintla", "Santa Lucía Cotzumalguapa", "La Democracia", "Siquinalá", "Masagua", "Tiquisate", "La Gomera", "Guanagazapa", "San José", "Iztapa", "Palín", "San Vicente Pacaya", "Nueva Concepción", "Taxisco"], "Santa Rosa": ["Cuilapa", "Barberena", "Santa Rosa de Lima", "Casillas", "San Rafael Las Flores", "Oratorio", "San Juan Tecuaco", "Chiquimulilla", "Taxisco", "Santa María Ixhuatán", "Guazacapán", "Santa Cruz Naranjo", "Pueblo Nuevo Viñas", "Nueva Santa Rosa"], "Sololá": ["Sololá", "San José Chacayá", "Santa María Visitación", "Santa Lucía Utatlán", "Nahualá", "Santa Catarina Ixtahuacán", "Santa Clara La Laguna", "Concepción", "San Andrés Semetabaj", "Panajachel", "Santa Catarina Palopó", "San Antonio Palopó", "San Lucas Tolimán", "Santa Cruz La Laguna", "San Pablo La Laguna", "San Marcos La Laguna", "San Juan La Laguna", "San Pedro La Laguna", "Santiago Atitlán"], "Totonicapán": ["Totonicapán", "San Cristóbal Totonicapán", "San Francisco El Alto", "San Andrés Xecul", "Momostenango", "Santa María Chiquimula", "Santa Lucía La Reforma", "San Bartolo Aguas Calientes"], "Quetzaltenango": ["Quetzaltenango", "Salcajá", "Olintepeque", "San Carlos Sija", "Sibilia", "Cabricán", "Cajolá", "San Miguel Sigüilá", "Ostuncalco", "San Mateo", "Concepción Chiquirichapa", "San Martín Sacatepéquez", "Almolonga", "Cantel", "Huitán", "Zunil", "Colomba Costa Cuca", "San Francisco La Unión", "El Palmar", "Coatepeque", "Génova", "Flores Costa Cuca", "La Esperanza", "Palestina de Los Altos"], "Suchitepéquez": ["Mazatenango", "Cuyotenango", "San Francisco Zapotitlán", "San Bernardino", "San José El Ídolo", "Santo Domingo Suchitepéquez", "San Lorenzo", "Samayac", "San Pablo Jocopilas", "San Antonio Suchitepéquez", "San Miguel Panán", "San Gabriel", "Chicacao", "Patulul", "Santa Bárbara", "San Juan Bautista", "Santo Tomás La Unión", "Zunilito", "Pueblo Nuevo", "Río Bravo", "San José La Máquina"], "Retalhuleu": ["Retalhuleu", "San Sebastián", "Santa Cruz Muluá", "San Martín Zapotitlán", "San Felipe", "San Andrés Villa Seca", "Champerico", "Nuevo San Carlos", "El Asintal"], "San Marcos": ["San Marcos", "San Pedro Sacatepéquez", "San Antonio Sacatepéquez", "Comitancillo", "San Miguel Ixtahuacán", "Concepción Tutuapa", "Tacaná", "Sibinal", "Tajumulco", "Tejutla", "San Rafael Pie de la Cuesta", "Nuevo Progreso", "El Tumbador", "El Rodeo", "Malacatán", "Catarina", "Ayutla", "Ocós", "San Pablo", "El Quetzal", "La Reforma", "Pajapita", "Ixchiguán", "San José Ojetenam", "San Cristóbal Cucho", "Sipacapa", "Esquipulas Palo Gordo", "Río Blanco", "San Lorenzo"], "Huehuetenango": ["Huehuetenango", "Chiantla", "Malacatancito", "Cuilco", "Nentón", "San Pedro Necta", "Jacaltenango", "Soloma", "Ilotenango", "Santa Bárbara", "La Libertad", "La Democracia", "San Miguel Acatán", "San Rafael La Independencia", "Todos Santos Cuchumatán", "San Juan Atitán", "Santa Eulalia", "San Mateo Ixtatán", "Colotenango", "San Sebastián Huehuetenango", "Tectitán", "Concepción Huista", "San Juan Ixcoy", "San Antonio Huista", "San Sebastián Coatán", "Santa Cruz Barillas", "Aguacatán", "San Rafael Petzal", "San Gaspar Ixchil", "Santiago Chimaltenango", "Santa Ana Huista"], "Quiché": ["Santa Cruz del Quiché", "Chiché", "Chinique", "Zacualpa", "Chajul", "Chichicastenango", "Patzité", "San Antonio Ilotenango", "San Pedro Jocopilas", "Cunén", "San Juan Cotzal", "Joyabaj", "Nebaj", "San Andrés Sajcabajá", "Uspantán", "Sacapulas", "San Bartolomé Jocotenango", "Canillá", "Chicamán", "Ixcán", "Pachalum"], "Baja Verapaz": ["Salamá", "San Miguel Chicaj", "Rabinal", "Cubulco", "Granados", "El Chol", "San Jerónimo", "Purulhá"], "Alta Verapaz": ["Cobán", "Santa Cruz Verapaz", "San Cristóbal Verapaz", "Tactic", "Tamahú", "Tucurú", "Panzós", "Senahú", "San Pedro Carchá", "San Juan Chamelco", "Lanquín", "Santa María Cahabón", "Chisec", "Chahal", "Fray Bartolomé de Las Casas", "Santa Catalina La Tinta", "Raxruhá"], "Petén": ["Flores", "San José", "San Benito", "San Andrés", "La Libertad", "San Francisco", "Santa Ana", "Dolores", "San Luis", "Sayaxché", "Melchor de Mencos", "Poptún", "Las Cruces", "El Chal"], "Izabal": ["Puerto Barrios", "Livingston", "El Estor", "Morales", "Los Amates"], "Zacapa": ["Zacapa", "Estanzuela", "Río Hondo", "Gualán", "Teculután", "Usumatlán", "Cabañas", "San Jorge", "Huité", "La Unión"], "Chiquimula": ["Chiquimula", "San José La Arada", "San Juan Ermita", "Jocotán", "Camotán", "Olopa", "Esquipulas", "Concepción Las Minas", "Quezaltepeque", "San Jacinto", "Ipala"], "Jalapa": ["Jalapa", "San Pedro Pinula", "San Luis Jilotepeque", "San Manuel Chaparrón", "San Carlos Alzatate", "Monjas", "Mataquescuintla", "San Miguel Las Flores"], "Jutiapa": ["Jutiapa", "El Progreso", "Santa Catarina Mita", "Agua Blanca", "Asunción Mita", "Yupiltepeque", "Atescatempa", "Jerez", "El Adelanto", "Zapotitlán", "Comapa", "Jalpatagua", "Conguaco", "Moyuta", "Pasaco", "San José Acatempa", "Quesada"]};
+
+const GT_ALDEAS = {"Guatemala":{"Guatemala":["Zona 1","Zona 2","Zona 3","Zona 4","Zona 5","Zona 6","Zona 7","Zona 8","Zona 9","Zona 10","Zona 11","Zona 12","Zona 13","Zona 14","Zona 15","Zona 16","Zona 17","Zona 18","Zona 19","Zona 21"],"Mixco":["Lo de Bran","Lo de Fuentes","Lo de Coy","Lo de Rodríguez","Colonia El Milagro","Colonia Carolingia","Buena Vista","Miraflores","Ciudad San Cristóbal","Monte Real","Tierra Nueva","Sacoj"],"Villa Nueva":["Bárcenas","Villalobos","Gerona","Santa Isabel","El Frutal","Guillermo Molina","San Antonio","Rancho Santa Clara"],"Petapa":["Villa Canales","Boca del Monte","Cuchilla del Carmen"],"Amatitlán":["Calderas","El Durazno","Jocotillo","Llano de Animas","Los Humitos","Eje Quemado","Las Trojes"],"Santa Catarina Pinula":["Laguna Bermeja","El Carmen","Canalitos","Salvadora I","Salvadora II"],"San José Pinula":["Lo de China","Lo de Diéguez","Lo de Hernández","Salvadora","El Garitón"],"Fraijanes":["El Cerrito","Boca del Monte","Laguna Bermeja","Los Verdes"],"Chinautla":["Cruz Blanca","Los Chinautlecos","Tres Sabanas","El Durazno"],"San Juan Sacatepéquez":["San Pedro Sacatepéquez","Los Guates","Montufar","Estancia Grande"],"Palencia":["San Rafael el Arado","El Ciprés","Sansur"],"Villa Canales":["El Porvenir","Boca del Monte","Santa Rosita","Panorama"],"San Pedro Ayampuc":["Laguneta","El Tizate","Piedra Parada"]},"Sacatepéquez":{"Antigua Guatemala":["San Felipe de Jesús","Santa Ana","San Juan del Obispo","San Pedro Las Huertas","Ciudad Vieja","San Cristóbal El Bajo","San Cristóbal El Alto","El Hato","Los Altos"],"Jocotenango":["La Merced","San Sebastián"],"Pastores":["Aldea La Antigua","El Caj"],"Sumpango":["Rancho Alegre","Los Pinos"],"Santiago Sacatepéquez":["San Bartolomé Milpas Altas","Concepción El Chipilinar"],"San Lucas Sacatepéquez":["Santiago Sacatepéquez","San Bartolomé"]},"Chimaltenango":{"Chimaltenango":["El Tejar","San Jacinto","Buena Vista","Cerro Alto","Los Planes","La Alameda"],"Comalapa":["Panimaquin","Agua Caliente","Xenimajuyú","Xetulul"],"Tecpán Guatemala":["Xesuj","Paquip","Simajulew","Panabajal","Caquixajuyú"],"Patzún":["Xejuyup","Tierra Blanca","Panimatzalam"],"Patzicía":["Xenimajuyu","San Bernabé","Saquiyá"],"Acatenango":["San Marcos Pacoc","Panimaquin","La Soledad"],"San Andrés Itzapa":["Parramos","La Alameda","Chimachoy"],"Zaragoza":["Xetonox","Patzaj","El Rejón"],"El Tejar":["Buena Vista","Agua Caliente","La Navidad"]},"Escuintla":{"Escuintla":["San Cristóbal","El Rodeo","El Coyol","Obero","La Democracia","Sipacate"],"Santa Lucía Cotzumalguapa":["La Gomera","Madre Vieja","El Bálsamo","Cerritos"],"Palín":["Calderas","El Durazno","Los Ranchos"],"Tiquisate":["Nueva Concepción","El Semillero"],"La Gomera":["Sipacate","El Semillero"],"San Vicente Pacaya":["Calderas","San Francisco de Sales","Los Iros"]},"Santa Rosa":{"Cuilapa":["Los Planes","San Miguel","Santa Teresa","El Morán"],"Barberena":["Colmenas","El Jocotillo","Los Esclavos"],"Chiquimulilla":["Ixpaco","El Ahumado","Las Lisas"],"Taxisco":["Garita Chapina","La Barrona","Monterrico"],"Oratorio":["El Calvario","Las Crucitas"],"Nueva Santa Rosa":["Casillas","Mataquescuintla"]},"Sololá":{"Sololá":["Los Encuentros","Chacayá","Pixabaj","Chuiquel","Nahualá"],"Panajachel":["San Andrés Semetabaj","Santa Catarina Palopó","San Antonio Palopó"],"Santiago Atitlán":["Cerro de Oro","San Lucas Tolimán"],"Nahualá":["Santa Catarina Ixtahuacán","Cipresales"],"San Pedro La Laguna":["San Juan La Laguna","San Pablo La Laguna","San Marcos La Laguna"]},"Totonicapán":{"Totonicapán":["Nimasac","Chuimequená","Coxom","Chiyax","Rancho de Teja","Chipuac"],"San Cristóbal Totonicapán":["Pologüá","La Laguna"],"San Francisco El Alto":["Baquiaxá","Tuixcox","Choatalum","El Tabacal"],"Momostenango":["Santa Ana","San Vicente Buenabaj","Llanos del Pinal","Los Cipreses"],"San Andrés Xecul":["Pajuliá","La Ciénega"]},"Quetzaltenango":{"Quetzaltenango":["Salcajá","San Marcos","La Ciénaga","Concepción Chiquirichapa","El Palmar","Zona 1","Zona 2","Zona 3","Zona 4","Zona 5"],"Coatepeque":["El Quetzal","Flores Costa Cuca","Génova","El Tumbador"],"Ostuncalco":["Concepción Chiquirichapa","San Marcos La Comunidad"],"Almolonga":["Pachaj","El Baúl"],"Cantel":["Zunil","Xecam"],"Zunil":["El Recreo","Georgeana"],"La Esperanza":["Nuevo Palmar","San Marcos"]},"Suchitepéquez":{"Mazatenango":["Carretas","Caballo Blanco","Estoraque","San Lorenzo","Tahuexco"],"Chicacao":["San Miguel Panán","Patulul"],"Patulul":["Santa Bárbara","Madre Vieja"],"Santo Domingo Suchitepéquez":["Río Bravo","San José La Máquina"],"San Antonio Suchitepéquez":["Santa Bárbara","San Bernardino"]},"Retalhuleu":{"Retalhuleu":["El Asintal","Nuevo San Carlos","San Felipe","San Andrés Villa Seca"],"Champerico":["El Tulate","Manchón"],"El Asintal":["Magnolia","El Triunfo"]},"San Marcos":{"San Marcos":["San Pedro Sacatepéquez","San Antonio Sacatepéquez","Tejutla","Comitancillo"],"Malacatán":["Catarina","Pajapita","Ayutla"],"Tacaná":["Sibinal","Ixchiguán","Concepción Tutuapa"],"Tajumulco":["Toquián Grande","Toquián Chico"],"San Miguel Ixtahuacán":["Sipacapa","Comitancillo"]},"Huehuetenango":{"Huehuetenango":["Chiantla","Malacatancito","Cuilco","Los Cuchumatanes"],"Jacaltenango":["Concepción Huista","La Democracia","San Antonio Huista"],"Soloma":["San Juan Ixcoy","Santa Eulalia","San Rafael La Independencia"],"Todos Santos Cuchumatán":["San Juan Atitán","Colotenango","San Sebastián Huehuetenango"],"Santa Cruz Barillas":["Ixcán","Playa Grande"],"Aguacatán":["San Rafael Petzal","San Gaspar Ixchil"]},"Quiché":{"Santa Cruz del Quiché":["Chiché","Chinique","Patzité","San Antonio Ilotenango","Zacualpa"],"Chichicastenango":["Pachaj","Tecpán","Camanchaj","Xebaquiej"],"Nebaj":["Chajul","Cotzal","San Juan Cotzal"],"Ixcán":["Playa Grande","San Lucas","Cantabal","La Perla"],"Sacapulas":["Cunén","Uspantán"]},"Baja Verapaz":{"Salamá":["San Jerónimo","El Chol","Granados","Purulhá"],"Rabinal":["Cubulco","San Miguel Chicaj"],"San Jerónimo":["La Canoa","Chicruz","Panpacché"],"Purulhá":["Tactic","Tamahú"]},"Alta Verapaz":{"Cobán":["San Juan Chamelco","San Pedro Carchá","Santa Cruz Verapaz","San Cristóbal Verapaz","El Estor"],"San Pedro Carchá":["Lanquín","Cahabón","Senahú","Tucurú"],"Tactic":["Tamahú","Santa Cruz Verapaz"],"Panzós":["Senahú","La Tinta"],"Chisec":["Raxruhá","Fray Bartolomé de Las Casas","Chahal"],"Lanquín":["Cahabón","Santa María Cahabón"]},"Petén":{"Flores":["Santa Elena","San Benito","San Andrés","San José"],"San Benito":["La Libertad","San Francisco"],"Sayaxché":["Las Cruces","El Chal","La Libertad"],"Poptún":["San Luis","Dolores","Melchor de Mencos"]},"Izabal":{"Puerto Barrios":["Livingston","El Estor","Los Amates"],"Livingston":["El Estor","Morales"],"El Estor":["Morales","Los Amates"]},"Zacapa":{"Zacapa":["Estanzuela","Río Hondo","Gualán","Teculután","La Unión"],"Gualán":["Huité","Usumatlán","Cabañas"],"Teculután":["San Jorge","Cabañas"]},"Chiquimula":{"Chiquimula":["Esquipulas","Jocotán","Camotán","Olopa"],"Esquipulas":["Concepción Las Minas","Quezaltepeque"],"Jocotán":["Camotán","San Juan Ermita"]},"Jalapa":{"Jalapa":["San Pedro Pinula","San Luis Jilotepeque","San Manuel Chaparrón"],"Mataquescuintla":["Monjas","San Carlos Alzatate"]},"Jutiapa":{"Jutiapa":["Asunción Mita","Agua Blanca","Yupiltepeque"],"Asunción Mita":["Agua Blanca","Atescatempa"],"Jalpatagua":["Conguaco","Moyuta","Comapa"]},"El Progreso":{"Guastatoya":["Sanarate","Sansare","San Agustín Acasaguastlán"],"San Agustín Acasaguastlán":["Morazán","El Jícaro"]}};
+
 
 let products=[], orders=[], cart=[];
 let editingId=null, loggedIn=false, currentPage=1;
@@ -1452,14 +1457,18 @@ function openCheckout(){
   updateCheckoutTotal();
   document.getElementById("checkoutModal").classList.add("open");
 }
-function getShippingCost(dept,mun){
-  const s=storeSettings, key=dept+"|"+mun;
-  if(s.shippingZones&&s.shippingZones[key]!==undefined) return s.shippingZones[key];
+function getShippingCost(dept,mun,aldea){
+  const s=storeSettings;
+  if(s.shippingZones){
+    if(aldea){const k3=dept+"|"+mun+"|"+aldea;if(s.shippingZones[k3]!==undefined)return s.shippingZones[k3];}
+    const k2=dept+"|"+mun;if(s.shippingZones[k2]!==undefined)return s.shippingZones[k2];
+  }
   return s.defaultShipping??25;
 }
 function updateCheckoutTotal(){
   const subtotal=cart.reduce((s,ci)=>{const p=products.find(x=>x.id===ci.id);return s+(p?getPrecioProducto(p)*ci.qty:0);},0);
   const dept=document.getElementById("buyerDept")?.value||"", mun=document.getElementById("buyerMun")?.value||"";
+  const aldea=document.getElementById("buyerAldea")?.value||"";
   const threshold=storeSettings.freeShippingAt??300;
   const freeBadge=document.getElementById("freeShippingBadge"), shipDisplay=document.getElementById("shippingCostDisplay");
   const selectedPaymentRadio=document.querySelector("input[name=paymentMethod]:checked");
@@ -1472,7 +1481,7 @@ function updateCheckoutTotal(){
     freeBadge.style.display="block";
     shipDisplay.textContent="¡Envío gratis aplicado!";
   } else {
-    shipping=(dept&&mun)?getShippingCost(dept,mun):(storeSettings.defaultShipping??25);
+    shipping=(dept&&mun)?getShippingCost(dept,mun,aldea):(storeSettings.defaultShipping??25);
     freeBadge.style.display="none";
     shipDisplay.textContent="Costo de envío estimado: Q"+shipping.toFixed(2);
   }
@@ -1485,6 +1494,16 @@ function loadMunicipios(){
   const munSel=document.getElementById("buyerMun");
   munSel.innerHTML="<option value=''>Selecciona municipio</option>";
   if(dept&&GT_DATA[dept]) GT_DATA[dept].forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m;munSel.appendChild(o);});
+  const asel=document.getElementById("buyerAldea");if(asel){asel.innerHTML="<option value=''>Todo el municipio / Cabecera</option>";}
+  renderCheckoutPaymentMethods();
+  updateCheckoutTotal();
+}
+function onBuyerMunChange(){
+  const dept=document.getElementById("buyerDept")?.value||"", mun=document.getElementById("buyerMun")?.value||"";
+  const asel=document.getElementById("buyerAldea"); if(!asel)return;
+  asel.innerHTML="<option value=''>Todo el municipio / Cabecera</option>";
+  const aldeas=(GT_ALDEAS[dept]&&GT_ALDEAS[dept][mun])||[];
+  aldeas.forEach(a=>{const o=document.createElement("option");o.value=a;o.textContent=a;asel.appendChild(o);});
   renderCheckoutPaymentMethods();
   updateCheckoutTotal();
 }
@@ -1501,7 +1520,7 @@ function placeOrder(){
   // Pickup store validation
   let pickupStore=null;
   if(selectedPayment.key==="pickup"){
-    const stores=(storeSettings.pickupStores||[]).filter(s=>s.municipios&&s.municipios.includes(dept+"|"+mun));
+    const stores=(storeSettings.pickupStores||[]).filter(s=>s.municipios&&s.municipios.some(key=>{const parts=key.split("|");return parts[0]===dept&&parts[1]===mun;}));
     if(!stores.length){toast("No hay tienda disponible para este municipio","error");return;}
     const pickupSel=document.getElementById("pickupStoreSelect");
     const storeId=pickupSel?pickupSel.value:stores[0].id;
@@ -2041,17 +2060,27 @@ function onShippingDeptChange(){
   const dept=document.getElementById("shippingDept").value, sel=document.getElementById("shippingMun");
   sel.innerHTML="<option value=''>Selecciona municipio</option>";
   if(dept&&GT_DATA[dept]) GT_DATA[dept].forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m;sel.appendChild(o);});
+  const asel=document.getElementById("shippingAldea"); if(asel){asel.innerHTML="<option value=''>Todo el municipio</option>";}
+}
+function onShippingMunChange(){
+  const dept=document.getElementById("shippingDept").value, mun=document.getElementById("shippingMun").value;
+  const asel=document.getElementById("shippingAldea"); if(!asel)return;
+  asel.innerHTML="<option value=''>Todo el municipio</option>";
+  const aldeas=(GT_ALDEAS[dept]&&GT_ALDEAS[dept][mun])||[];
+  aldeas.forEach(a=>{const o=document.createElement("option");o.value=a;o.textContent=a;asel.appendChild(o);});
 }
 function addShippingZone(){
   const dept=document.getElementById("shippingDept").value, mun=document.getElementById("shippingMun").value;
+  const aldea=(document.getElementById("shippingAldea")?.value||"").trim();
   const cost=parseFloat(document.getElementById("shippingCost").value);
   if(!dept||!mun||isNaN(cost)){toast("Completa todos los campos","error");return;}
   if(!storeSettings.shippingZones) storeSettings.shippingZones={};
-  storeSettings.shippingZones[dept+"|"+mun]=cost;
+  const key=aldea?dept+"|"+mun+"|"+aldea:dept+"|"+mun;
+  storeSettings.shippingZones[key]=cost;
   saveSettings(); renderShippingZones(); toast("Zona agregada","success");
 }
-function removeShippingZone(dept,mun){
-  delete storeSettings.shippingZones[dept+"|"+mun]; saveSettings(); renderShippingZones();
+function removeShippingZone(key){
+  delete storeSettings.shippingZones[key]; saveSettings(); renderShippingZones();
 }
 function saveShippingCost(){
   const def=parseFloat(document.getElementById("defaultShippingCost").value);
@@ -2064,8 +2093,8 @@ function renderShippingZones(){
   const cont=document.getElementById("shippingZonesList"); if(!cont)return;
   const zones=storeSettings.shippingZones||{}, entries=Object.entries(zones);
   if(!entries.length){cont.innerHTML="<p style='font-size:0.95rem;color:var(--text-muted)'>Sin zonas especiales configuradas.</p>";return;}
-  cont.innerHTML="<table class='admin-table'><thead><tr><th>Departamento</th><th>Municipio</th><th>Costo</th><th>Acción</th></tr></thead><tbody>"+
-    entries.map(([k,v])=>{const[d,m]=k.split("|");return"<tr><td>"+d+"</td><td>"+m+"</td><td><strong>Q"+v+"</strong></td><td><button class='btn-del' onclick='removeShippingZone(\""+d+"\",\""+m+"\")'>Quitar</button></td></tr>";}).join("")+
+  cont.innerHTML="<table class='admin-table'><thead><tr><th>Departamento</th><th>Municipio</th><th>Aldea/Cantón</th><th>Costo</th><th>Acción</th></tr></thead><tbody>"+
+    entries.map(([k,v])=>{const parts=k.split("|");const d=parts[0],m=parts[1],a=parts[2]||"";return"<tr><td>"+d+"</td><td>"+m+"</td><td>"+(a?"<span style='background:var(--green-soft);color:#065f46;border-radius:100px;padding:0.2rem 0.6rem;font-size:0.8rem;font-weight:700'>"+a+"</span>":"<span style='color:var(--text-muted);font-size:0.85rem'>Todo el mun.</span>")+"</td><td><strong>Q"+v+"</strong></td><td><button class='btn-del' onclick='removeShippingZone(\""+k+"\")'>Quitar</button></td></tr>";}).join("")+
   "</tbody></table>";
 }
 
@@ -2511,7 +2540,7 @@ function renderCheckoutPaymentMethods(){
     if(!v.enabled) return false;
     if(k==="pickup"){
       const stores=storeSettings.pickupStores||[];
-      return stores.some(s=>s.municipios&&s.municipios.includes(dept+"|"+mun));
+      return stores.some(s=>s.municipios&&s.municipios.some(key=>{const parts=key.split("|");return parts[0]===dept&&parts[1]===mun;}));
     }
     return true;
   });
@@ -2522,7 +2551,7 @@ function renderCheckoutPaymentMethods(){
   cont.innerHTML=active.map(([k,v],i)=>{
     let extra="";
     if(k==="pickup"){
-      const stores=(storeSettings.pickupStores||[]).filter(s=>s.municipios&&s.municipios.includes(dept+"|"+mun));
+      const stores=(storeSettings.pickupStores||[]).filter(s=>s.municipios&&s.municipios.some(key=>{const parts=key.split("|");return parts[0]===dept&&parts[1]===mun;}));
       if(stores.length>1){
         extra="<div style='margin-top:0.8rem'><label style='font-size:0.85rem;font-weight:600;color:var(--dark);display:block;margin-bottom:0.4rem'>Selecciona la tienda de recogida:</label>"+
           "<select id='pickupStoreSelect' onchange='updateCheckoutTotal()' style='width:100%;padding:0.7rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.9rem;font-family:inherit'>"+
@@ -2575,7 +2604,11 @@ function renderPickupStoresAdmin(){
   }
   cont.innerHTML=stores.map(s=>{
     const munLabels=(s.municipios||[]).map(k=>{
-      const [d,m]=k.split("|"); return d&&m?"<span style='display:inline-block;background:var(--bg);border:1px solid var(--border);border-radius:100px;padding:0.2rem 0.6rem;font-size:0.78rem;font-weight:600;margin:0.2rem'>"+d+" — "+m+"</span>":"";
+      const parts=k.split("|");const d=parts[0],m=parts[1],a=parts[2]||"";
+      if(!d||!m)return"";
+      const label=a?"📍 "+d+" — "+m+" › <em>"+a+"</em>":"🏙️ "+d+" — "+m;
+      const bg=a?"background:var(--green-soft);color:#065f46":"background:var(--bg);color:var(--dark)";
+      return "<span style='display:inline-block;"+bg+";border:1px solid var(--border);border-radius:100px;padding:0.2rem 0.7rem;font-size:0.78rem;font-weight:600;margin:0.2rem'>"+label+"</span>";
     }).join("");
     return "<div style='background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-md);padding:1.2rem;margin-bottom:1rem'>"+
       "<div style='display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.8rem'>"+
@@ -2583,7 +2616,7 @@ function renderPickupStoresAdmin(){
         "<div style='font-size:0.88rem;color:var(--text-muted);margin-top:0.2rem'>📍 "+s.direccion+"</div></div>"+
         "<button class='btn btn-danger' style='padding:0.4rem 0.9rem;font-size:0.85rem' onclick='deletePickupStore(\""+s.id+"\")'>Eliminar</button>"+
       "</div>"+
-      "<div style='font-size:0.82rem;font-weight:700;color:var(--text-muted);margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.5px'>Municipios habilitados:</div>"+
+      "<div style='font-size:0.82rem;font-weight:700;color:var(--text-muted);margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.5px'>Municipios / Aldeas habilitados:</div>"+
       "<div>"+munLabels+"</div>"+
     "</div>";
   }).join("");
@@ -2618,11 +2651,20 @@ function loadPsMunicipios(){
   const cont=document.getElementById("psMunicipiosList");
   if(!cont) return;
   if(!dept||!GT_DATA[dept]){cont.innerHTML="<p style='color:var(--text-muted);font-size:0.88rem'>Selecciona un departamento</p>";return;}
-  cont.innerHTML="<div style='display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem'>"+
+  cont.innerHTML="<div style='display:flex;flex-direction:column;gap:0.8rem;margin-top:0.5rem'>"+
     GT_DATA[dept].map(m=>{
       const key=dept+"|"+m;
-      return "<label style='display:flex;align-items:center;gap:0.4rem;background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:0.35rem 0.8rem;cursor:pointer;font-size:0.85rem;font-weight:600'>"+
-        "<input type='checkbox' class='ps-mun-check' value='"+key+"' style='accent-color:var(--accent)'>"+m+"</label>";
+      const aldeas=(GT_ALDEAS[dept]&&GT_ALDEAS[dept][m])||[];
+      const aldeaChecks=aldeas.map(a=>{
+        const akey=dept+"|"+m+"|"+a;
+        return "<label style='display:flex;align-items:center;gap:0.35rem;background:#f8fafc;border:1px solid var(--border);border-radius:100px;padding:0.25rem 0.7rem;cursor:pointer;font-size:0.8rem;font-weight:500'>"+
+          "<input type='checkbox' class='ps-mun-check' value='"+akey+"' style='accent-color:var(--accent)'>📍 "+a+"</label>";
+      }).join("");
+      return "<div style='background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.8rem'>"+
+        "<label style='display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;font-weight:700;margin-bottom:"+(aldeas.length?"0.5rem":"0")+"'>"+
+          "<input type='checkbox' class='ps-mun-check' value='"+key+"' style='accent-color:var(--accent);width:16px;height:16px'>🏙️ "+m+"</label>"+
+        (aldeas.length?"<div style='display:flex;flex-wrap:wrap;gap:0.4rem;margin-left:1.5rem'>"+aldeaChecks+"</div>":"")+
+      "</div>";
     }).join("")+
   "</div>";
 }
