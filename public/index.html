@@ -983,6 +983,7 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
 
       <div style="display:flex;gap:0.8rem;flex-wrap:wrap">
         <button class="btn btn-save" onclick="saveAldeaData()" id="btnSaveAldeas" style="display:none">☁️ Guardar en Firebase</button>
+        <button class="btn btn-ghost" onclick="exportAldeaData()">⬇ Exportar geodata CSV</button>
         <button class="btn btn-ghost" style="color:#e11d48;border-color:#fecdd3" onclick="clearAldeaData()">🗑 Borrar toda la geodata</button>
       </div>
     </div>
@@ -2168,8 +2169,8 @@ function renderShippingZones(){
   const cont=document.getElementById("shippingZonesList"); if(!cont)return;
   const zones=storeSettings.shippingZones||{}, entries=Object.entries(zones);
   if(!entries.length){cont.innerHTML="<p style='font-size:0.95rem;color:var(--text-muted)'>Sin zonas especiales configuradas.</p>";return;}
-  cont.innerHTML="<table class='admin-table'><thead><tr><th>Departamento</th><th>Municipio</th><th>Aldea/Cantón</th><th>Costo</th><th>Acción</th></tr></thead><tbody>"+
-    entries.map(([k,v])=>{const parts=k.split("|");const d=parts[0],m=parts[1],a=parts[2]||"";return"<tr><td>"+d+"</td><td>"+m+"</td><td>"+(a?"<span style='background:var(--green-soft);color:#065f46;border-radius:100px;padding:0.2rem 0.6rem;font-size:0.8rem;font-weight:700'>"+a+"</span>":"<span style='color:var(--text-muted);font-size:0.85rem'>Todo el mun.</span>")+"</td><td><strong>Q"+v+"</strong></td><td><button class='btn-del' onclick='removeShippingZone(\""+k+"\")'>Quitar</button></td></tr>";}).join("")+
+  cont.innerHTML="<table class='admin-table'><thead><tr><th>Lugar</th><th>Municipio</th><th>Departamento</th><th>Costo</th><th>Acción</th></tr></thead><tbody>"+
+    entries.map(([k,v])=>{const parts=k.split("|");const d=parts[0],m=parts[1],a=parts[2]||"";return"<tr><td>"+(a?"<span style='background:var(--green-soft);color:#065f46;border-radius:100px;padding:0.2rem 0.6rem;font-size:0.8rem;font-weight:700'>"+a+"</span>":"<span style='color:var(--text-muted);font-size:0.85rem'>—</span>")+"</td><td>"+m+"</td><td>"+d+"</td><td><strong>Q"+v+"</strong></td><td><button class='btn-del' onclick='removeShippingZone(\""+k+"\")'>Quitar</button></td></tr>";}).join("")+
   "</tbody></table>";
 }
 
@@ -2681,7 +2682,7 @@ function renderPickupStoresAdmin(){
     const munLabels=(s.municipios||[]).map(k=>{
       const parts=k.split("|");const d=parts[0],m=parts[1],a=parts[2]||"";
       if(!d||!m)return"";
-      const label=a?"📍 "+d+" — "+m+" › <em>"+a+"</em>":"🏙️ "+d+" — "+m;
+      const label=a?"📍 "+a+", "+m+", "+d:"🏙️ "+m+", "+d;
       const bg=a?"background:var(--green-soft);color:#065f46":"background:var(--bg);color:var(--dark)";
       return "<span style='display:inline-block;"+bg+";border:1px solid var(--border);border-radius:100px;padding:0.2rem 0.7rem;font-size:0.78rem;font-weight:600;margin:0.2rem'>"+label+"</span>";
     }).join("");
@@ -2808,14 +2809,17 @@ function handleAldeaCsv(input){
 
 async function saveAldeaData(){
   if(!window._pendingAldeas){toast("No hay datos para guardar","error");return;}
-  // Merge aldeas
+  // Merge aldeas SIN duplicados
   for(const dept in window._pendingAldeas){
     if(!GT_ALDEAS[dept]) GT_ALDEAS[dept]={};
     for(const mun in window._pendingAldeas[dept]){
-      GT_ALDEAS[dept][mun]=window._pendingAldeas[dept][mun];
+      if(!GT_ALDEAS[dept][mun]) GT_ALDEAS[dept][mun]=[];
+      window._pendingAldeas[dept][mun].forEach(a=>{
+        if(!GT_ALDEAS[dept][mun].includes(a)) GT_ALDEAS[dept][mun].push(a);
+      });
     }
   }
-  // Merge departamentos y municipios en GT_DATA
+  // Merge departamentos y municipios SIN duplicados
   if(window._pendingDepts){
     for(const dept in window._pendingDepts){
       if(!GT_DATA[dept]) GT_DATA[dept]=[];
@@ -2836,6 +2840,32 @@ async function saveAldeaData(){
     renderAldeaStats();
     toast("Geodata guardada en Firebase ☁️","success");
   }catch(e){toast("Error al guardar en Firebase","error");console.error(e);}
+}
+
+function exportAldeaData(){
+  const rows=["departamento,municipio,tipo,nombre"];
+  // Exportar aldeas/cantones/etc
+  for(const dept in GT_ALDEAS){
+    for(const mun in GT_ALDEAS[dept]){
+      (GT_ALDEAS[dept][mun]||[]).forEach(nombre=>{
+        rows.push([dept,mun,"aldea",nombre].join(","));
+      });
+    }
+  }
+  // Exportar municipios que no tienen aldeas (solo están en GT_DATA)
+  for(const dept in GT_DATA){
+    (GT_DATA[dept]||[]).forEach(mun=>{
+      const tieneAldeas=GT_ALDEAS[dept]&&GT_ALDEAS[dept][mun]&&GT_ALDEAS[dept][mun].length>0;
+      if(!tieneAldeas) rows.push([dept,mun,"municipio",""].join(","));
+    });
+  }
+  if(rows.length<=1){toast("No hay geodata para exportar","error");return;}
+  const blob=new Blob([rows.join("\n")],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="geodata_export_"+new Date().toISOString().slice(0,10)+".csv";
+  a.click();
+  toast("CSV exportado ✅","success");
 }
 
 async function clearAldeaData(){
