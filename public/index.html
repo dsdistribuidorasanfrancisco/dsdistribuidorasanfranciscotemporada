@@ -157,7 +157,11 @@ window._fb = {
   },
   saveGeoData: async (data) => {
     if (!fbReady) return;
-    await set(ref(db, "geodata"), data);
+    if(data===null){
+      await set(ref(db, "geodata"), null);
+    } else {
+      await set(ref(db, "geodata"), data);
+    }
   },
   getGeoData: async () => {
     if (!fbReady) return null;
@@ -2778,9 +2782,17 @@ function handleAldeaCsv(input){
     const lines=e.target.result.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim()&&!/^lugar/i.test(l.trim()));
     const preview={}; let ok=0,bad=0;
     lines.forEach(line=>{
-      const parts=line.split(",").map(s=>s.trim());
-      if(parts.length<3||!parts[0]||!parts[1]||!parts[2]){bad++;return;}
-      const lugar=parts[0],mun=parts[1],dept=parts[2];
+      // Parse CSV respetando campos entre comillas
+      const cols=[];let cur="",inQ=false;
+      for(let ci=0;ci<line.length;ci++){
+        const ch=line[ci];
+        if(ch==='"'){inQ=!inQ;}
+        else if(ch===","&&!inQ){cols.push(cur.trim());cur="";}
+        else{cur+=ch;}
+      }
+      cols.push(cur.trim());
+      if(cols.length<3||!cols[0]||!cols[1]||!cols[2]){bad++;return;}
+      const lugar=cols[0].replace(/^"|"$/g,""),mun=cols[1].replace(/^"|"$/g,""),dept=cols[2].replace(/^"|"$/g,"");
       // 3 cols: lugar,municipio,departamento
       if(!preview[dept]) preview[dept]={};
       if(!preview[dept][mun]) preview[dept][mun]=[];
@@ -2836,7 +2848,7 @@ async function saveAldeaData(){
     document.getElementById("aldeaCsvInput").value="";
     renderAldeaStats();
     toast("Geodata guardada en Firebase ☁️","success");
-  }catch(e){toast("Error al guardar en Firebase","error");console.error(e);}
+  }catch(e){toast("Error al guardar: "+((e&&e.message)||String(e)),"error");console.error(e);}
 }
 
 function exportAldeaData(){
@@ -2871,7 +2883,8 @@ async function clearAldeaData(){
   for(const k in GT_DATA) delete GT_DATA[k];
   try{
     if(window._fb&&window._fb.ready()){
-      await window._fb.saveGeoData({departamentos:{},aldeas:{}});
+      // Usar set con null para borrar el nodo completamente en Firebase
+      await window._fb.saveGeoData(null);
     }
     try{ populateDeptSelects(); }catch(e2){}
     try{ renderAldeaStats(); }catch(e3){}
