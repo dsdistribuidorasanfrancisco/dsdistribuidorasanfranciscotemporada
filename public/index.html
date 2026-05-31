@@ -136,6 +136,13 @@ window._fb = {
     productsArr.forEach(p => {
       const key = p._key || push(ref(db, "products")).key;
       const { _key, ...data } = p;
+      // Firebase drops 0 and null — store prices as numbers, keep undefined as 0
+      if(data.precio_media_docena===undefined) data.precio_media_docena=0;
+      if(data.precio_docena===undefined) data.precio_docena=0;
+      if(data.precio_fardo===undefined) data.precio_fardo=0;
+      if(data.precio_mayoristas===undefined) data.precio_mayoristas=0;
+      if(data.precio_oferta===undefined) data.precio_oferta=0;
+      // Firebase won't store 0 — use a small sentinel or just rely on parseFloat on read
       obj[key] = data;
     });
     await set(ref(db, "products"), obj);
@@ -211,21 +218,6 @@ window._fb = {
 // ── Disparar init cuando Firebase esté listo ──────────────────
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("loadingOverlay").classList.add("show");
-
-  function tryInit(fbData){
-    // Esperar a que _appInit esté definido (módulo ES6 puede tardar)
-    if(window._appInit){
-      window._appInit();
-    } else {
-      let tries=0;
-      const iv=setInterval(()=>{
-        tries++;
-        if(window._appInit){ clearInterval(iv); window._appInit(); }
-        else if(tries>20){ clearInterval(iv); document.getElementById("loadingOverlay").classList.remove("show"); }
-      },100);
-    }
-  }
-
   if (fbReady) {
     Promise.all([
       get(ref(db, "products")),
@@ -235,27 +227,26 @@ document.addEventListener("DOMContentLoaded", () => {
       if (pSnap.val()) window._fbInitProducts = Object.entries(pSnap.val()).map(([k,v])=>({_key:k,...v}));
       if (sSnap.val()) window._fbInitSettings = sSnap.val();
       if (gSnap.val()) window._fbInitGeoData = gSnap.val();
-      tryInit();
+      setTimeout(() => window._appInit && window._appInit(), 100);
     }).catch(err => {
       console.warn("Error cargando Firebase, modo local:", err);
       syncStatus(false, "local");
-      tryInit();
+      setTimeout(() => window._appInit && window._appInit(), 100);
     });
   } else {
-    setTimeout(tryInit, 300);
+    setTimeout(() => window._appInit && window._appInit(), 300);
   }
 });
 
-// TIMEOUT DE SEGURIDAD: si Firebase no responde en 8 seg, arrancar en modo local
+// TIMEOUT DE SEGURIDAD: si Firebase no responde en 12 seg, arrancar en modo local
 setTimeout(() => {
   const overlay = document.getElementById("loadingOverlay");
   if (overlay && overlay.classList.contains("show")) {
     console.warn("Timeout Firebase — arrancando en modo local");
     syncStatus(false, "local");
-    if(window._appInit) window._appInit();
-    else { overlay.classList.remove("show"); }
+    window._appInit && window._appInit();
   }
-}, 8000);
+}, 12000);
 
 // RECONEXION AUTOMATICA: cada 8 seg reintenta si sigue en local
 setInterval(() => {
@@ -1193,13 +1184,16 @@ function getPrecioProducto(p){
     if(p.precio_oferta&&p.precio_oferta>0) return p.precio_oferta;
     return p.price;
   }
-  if(mayoreoTipo==="media_docena"&&p.precio_media_docena>0) return p.precio_media_docena;
-  if(mayoreoTipo==="docena"&&p.precio_docena>0) return p.precio_docena;
-  if(mayoreoTipo==="fardo"&&p.precio_fardo>0) return p.precio_fardo;
+  const pmd=parseFloat(p.precio_media_docena)||0;
+  const pdc=parseFloat(p.precio_docena)||0;
+  const pfa=parseFloat(p.precio_fardo)||0;
+  if(mayoreoTipo==="media_docena"&&pmd>0) return pmd;
+  if(mayoreoTipo==="docena"&&pdc>0) return pdc;
+  if(mayoreoTipo==="fardo"&&pfa>0) return pfa;
   // fallback a mayoristas general
-  const precioEspecial=p.precio_mayoristas||p.precio_uds;
-  if(precioEspecial&&precioEspecial>0) return precioEspecial;
-  return p.price;
+  const precioEspecial=parseFloat(p.precio_mayoristas)||parseFloat(p.precio_uds)||0;
+  if(precioEspecial>0) return precioEspecial;
+  return parseFloat(p.price)||0;
 }
 
 // Compatibilidad legacy
@@ -1488,9 +1482,10 @@ function setMayoreoTipo(tipo){
   if(subBar){
     if(esMayoreo){
       subBar.style.display="flex";
-      subBar.innerHTML=Object.entries(MAYOREO_SUB_TIPOS).map(([k,v])=>
-        "<button class='shop-price-btn"+(mayoreoTipo===k?" active":"")+"' style='font-size:0.85rem;padding:0.4rem 0.8rem;' onclick="setMayoreoTipo('"+k+"')">"+v.icon+" "+v.label+"</button>"
-      ).join("");
+      subBar.innerHTML=Object.entries(MAYOREO_SUB_TIPOS).map(([k,v])=>{
+        const ac=mayoreoTipo===k?" active":"";
+        return "<button class=\'shop-price-btn"+ac+"\' style=\'font-size:0.85rem;padding:0.4rem 0.8rem;\' onclick=\'setMayoreoTipo(&quot;"+k+"&quot;)\'>"+(v.icon||"")+" "+v.label+"</button>";
+      }).join("");
     } else {
       subBar.style.display="none";
     }
