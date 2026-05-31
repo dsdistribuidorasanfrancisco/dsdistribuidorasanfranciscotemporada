@@ -726,6 +726,8 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
       <button id="shopBtnPublico" class="shop-price-btn active" onclick="setMayoreoTipo('publico')">🛒 Público</button>
       <button id="shopBtnMayoristas" class="shop-price-btn" onclick="setMayoreoTipo('media_docena')">🏪 Mayoristas</button>
     </div>
+    <div id="shopSubMayoreoBar" style="display:none;flex-wrap:wrap;gap:0.4rem;margin-top:0.4rem;">
+    </div>
     <span id="productCount"></span>
   </div>
   <div class="products-grid" id="productsGrid"></div>
@@ -1464,14 +1466,27 @@ function updateCartCount(){
 }
 function setMayoreoTipo(tipo){
   mayoreoTipo=tipo; mayoreoMode=tipo!=="publico"&&tipo!=="";
-  const allLabels={...PRECIO_TIPOS,...MAYOREO_SUB_TIPOS};
-  const label=allLabels[tipo||"publico"]?.label||"Público";
   const shopTipo=(tipo==="publico"||!tipo)?"publico":"mayoristas";
   ["publico","mayoristas"].forEach(t=>{
     const btn=document.getElementById("shopBtn"+t.charAt(0).toUpperCase()+t.slice(1));
     if(btn) btn.className="shop-price-btn"+(shopTipo===t?" active":"");
   });
+  // Toast: solo muestra "Mayoristas" o "Público"
+  const esMayoreo=mayoreoMode&&tipo!=="publico";
+  const label=esMayoreo?"Mayoristas":"Público";
   toast("Vista: "+label,"success");
+  // Mostrar/ocultar sub-botones de mayorista en la tienda
+  const subBar=document.getElementById("shopSubMayoreoBar");
+  if(subBar){
+    if(esMayoreo){
+      subBar.style.display="flex";
+      subBar.innerHTML=Object.entries(MAYOREO_SUB_TIPOS).map(([k,v])=>
+        "<button class='shop-price-btn"+(mayoreoTipo===k?" active":"")+"' style='font-size:0.85rem;padding:0.4rem 0.8rem;' onclick="setMayoreoTipo('"+k+"')">"+v.icon+" "+v.label+"</button>"
+      ).join("");
+    } else {
+      subBar.style.display="none";
+    }
+  }
   renderCart(); renderShop();
 }
 function renderCart(){
