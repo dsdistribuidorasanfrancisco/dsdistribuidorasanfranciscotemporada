@@ -211,44 +211,51 @@ window._fb = {
 // ── Disparar init cuando Firebase esté listo ──────────────────
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("loadingOverlay").classList.add("show");
+
+  function tryInit(fbData){
+    // Esperar a que _appInit esté definido (módulo ES6 puede tardar)
+    if(window._appInit){
+      window._appInit();
+    } else {
+      let tries=0;
+      const iv=setInterval(()=>{
+        tries++;
+        if(window._appInit){ clearInterval(iv); window._appInit(); }
+        else if(tries>20){ clearInterval(iv); document.getElementById("loadingOverlay").classList.remove("show"); }
+      },100);
+    }
+  }
+
   if (fbReady) {
-    // Cargar datos iniciales desde Firebase antes de arrancar
-    // Solo cargamos nodos públicos al inicio (products, settings, geodata)
-    // orders requiere auth — se carga aparte cuando el admin entra al panel
     Promise.all([
       get(ref(db, "products")),
       get(ref(db, "settings")),
       get(ref(db, "geodata"))
     ]).then(([pSnap, sSnap, gSnap]) => {
-      if (pSnap.val()) {
-        window._fbInitProducts = Object.entries(pSnap.val()).map(([k,v])=>({_key:k,...v}));
-      }
-      if (sSnap.val()) {
-        window._fbInitSettings = sSnap.val();
-      }
-      if (gSnap.val()) {
-        window._fbInitGeoData = gSnap.val();
-      }
-      setTimeout(() => window._appInit && window._appInit(), 100);
+      if (pSnap.val()) window._fbInitProducts = Object.entries(pSnap.val()).map(([k,v])=>({_key:k,...v}));
+      if (sSnap.val()) window._fbInitSettings = sSnap.val();
+      if (gSnap.val()) window._fbInitGeoData = gSnap.val();
+      tryInit();
     }).catch(err => {
       console.warn("Error cargando Firebase, modo local:", err);
       syncStatus(false, "local");
-      setTimeout(() => window._appInit && window._appInit(), 100);
+      tryInit();
     });
   } else {
-    setTimeout(() => window._appInit && window._appInit(), 300);
+    setTimeout(tryInit, 300);
   }
 });
 
-// TIMEOUT DE SEGURIDAD: si Firebase no responde en 30 seg, arrancar en modo local
+// TIMEOUT DE SEGURIDAD: si Firebase no responde en 8 seg, arrancar en modo local
 setTimeout(() => {
   const overlay = document.getElementById("loadingOverlay");
   if (overlay && overlay.classList.contains("show")) {
     console.warn("Timeout Firebase — arrancando en modo local");
     syncStatus(false, "local");
-    window._appInit && window._appInit();
+    if(window._appInit) window._appInit();
+    else { overlay.classList.remove("show"); }
   }
-}, 30000);
+}, 8000);
 
 // RECONEXION AUTOMATICA: cada 8 seg reintenta si sigue en local
 setInterval(() => {
