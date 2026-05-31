@@ -63,11 +63,12 @@ if (_fbAuth) {
   onAuthStateChanged(_fbAuth, user => {
     _fbAuthReady = !!user;
   });
-  // Auto login al cargar la página — así orders y otros nodos protegidos
-  // funcionan desde el inicio sin esperar que el admin entre al panel
-  signInWithEmailAndPassword(_fbAuth, ADMIN_EMAIL, ADMIN_PASS)
-    .then(() => { _fbAuthReady = true; })
-    .catch(e => console.warn("Firebase Auth auto-login:", e.message));
+  // Auto login en segundo plano — no bloquea la carga de la app
+  setTimeout(() => {
+    signInWithEmailAndPassword(_fbAuth, ADMIN_EMAIL, ADMIN_PASS)
+      .then(() => { _fbAuthReady = true; })
+      .catch(e => console.warn("Firebase Auth auto-login:", e.message));
+  }, 3000);
 }
 async function _fbSignIn() {
   if (!_fbAuth) return false;
