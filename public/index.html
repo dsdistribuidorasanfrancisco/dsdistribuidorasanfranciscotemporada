@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>DS Distribuidora San Francisco Temporada</title>
+<title>DS Distribuidora San Francisco NO.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
@@ -16,15 +16,14 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
   GoogleAuthProvider, FacebookAuthProvider, signInWithPopup }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-const _savedFbCfg = JSON.parse(localStorage.getItem("lx_fb_config") || "null");
-const FIREBASE_CONFIG = _savedFbCfg || {
-  apiKey: "AIzaSyA5Ig1zf3IZJVZgMgfWUD7hXZ03MJnpZik",
-  authDomain: "dsdistribuidorasfctemporada.firebaseapp.com",
-  databaseURL: "https://dsdistribuidorasfctemporada-default-rtdb.firebaseio.com",
-  projectId: "dsdistribuidorasfctemporada",
-  storageBucket: "dsdistribuidorasfctemporada.firebasestorage.app",
-  messagingSenderId: "800569491916",
-  appId: "1:800569491916:web:8ccd430778f8d6fa729d69"
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC3CGd8PsSm6qnBSGT0TdG_JTorOK_a9Vw",
+  authDomain: "dsdistribuidorasfc3.firebaseapp.com",
+  databaseURL: "https://dsdistribuidorasfc3-default-rtdb.firebaseio.com",
+  projectId: "dsdistribuidorasfc3",
+  storageBucket: "dsdistribuidorasfc3.firebasestorage.app",
+  messagingSenderId: "553259515635",
+  appId: "1:553259515635:web:6bfdce6b30ba372f208186"
 };
 const FB_CONFIGURED = true;
 
@@ -207,9 +206,7 @@ window._fb = {
     const snap = await get(ref(db, "geodata"));
     return snap.val();
   },
-
   // ── Auth de CLIENTES ─────────────────────────────────────────
-  // Perfil y pedidos de cliente en /customers/{uid}
   saveCustomerProfile: async (uid, data) => {
     if (!fbReady) return;
     await update(ref(db, "customers/" + uid + "/profile"), data);
@@ -240,9 +237,7 @@ window._fb = {
     const snap = await get(ref(db, "orders"));
     const d = snap.val();
     if (!d) return [];
-    return Object.entries(d)
-      .map(([k,v])=>({_key:k,...v}))
-      .filter(o => o.customerUid === uid);
+    return Object.entries(d).map(([k,v])=>({_key:k,...v})).filter(o => o.customerUid === uid);
   },
   linkOrderToCustomer: async (orderKey, uid) => {
     if (!fbReady || !orderKey) return;
@@ -252,82 +247,57 @@ window._fb = {
 
 // ── Auth Social de CLIENTES ───────────────────────────────────
 window._clientAuth = {
-  // Registrar con email
   register: async (email, password, name) => {
     if (!_fbAuth) return { ok: false, err: "Firebase no disponible" };
     try {
       const cred = await createUserWithEmailAndPassword(_fbAuth, email, password);
       await updateProfile(cred.user, { displayName: name });
       return { ok: true, user: cred.user };
-    } catch(e) {
-      return { ok: false, err: e.message };
-    }
+    } catch(e) { return { ok: false, err: e.message }; }
   },
-  // Login con email
   loginEmail: async (email, password) => {
     if (!_fbAuth) return { ok: false, err: "Firebase no disponible" };
     try {
-      // Crear segunda instancia de auth para clientes
       const cred = await signInWithEmailAndPassword(_fbAuth, email, password);
       return { ok: true, user: cred.user };
-    } catch(e) {
-      return { ok: false, err: e.message };
-    }
+    } catch(e) { return { ok: false, err: e.message }; }
   },
-  // Login con Google
   loginGoogle: async () => {
     if (!_fbAuth) return { ok: false, err: "Firebase no disponible" };
     try {
       const provider = new GoogleAuthProvider();
       const cred = await signInWithPopup(_fbAuth, provider);
       return { ok: true, user: cred.user };
-    } catch(e) {
-      return { ok: false, err: e.message };
-    }
+    } catch(e) { return { ok: false, err: e.message }; }
   },
-  // Login con Facebook
   loginFacebook: async () => {
     if (!_fbAuth) return { ok: false, err: "Firebase no disponible" };
     try {
       const provider = new FacebookAuthProvider();
       const cred = await signInWithPopup(_fbAuth, provider);
       return { ok: true, user: cred.user };
-    } catch(e) {
-      return { ok: false, err: e.message };
-    }
+    } catch(e) { return { ok: false, err: e.message }; }
   },
-  // Restablecer contraseña
   resetPassword: async (email) => {
     if (!_fbAuth) return { ok: false, err: "Firebase no disponible" };
     try {
       await sendPasswordResetEmail(_fbAuth, email);
       return { ok: true };
-    } catch(e) {
-      return { ok: false, err: e.message };
-    }
+    } catch(e) { return { ok: false, err: e.message }; }
   },
-  // Cerrar sesión de cliente
   logout: async () => {
-    if (!_fbAuth) return;
-    // No cerramos el auth de admin (que usa _fbAuth también),
-    // solo limpiamos el estado de cliente en la app
     window._currentClient = null;
     localStorage.removeItem("lx_client_session");
   }
 };
 
-// Escuchar cambios de sesión (admin + cliente)
 if (_fbAuth) {
   onAuthStateChanged(_fbAuth, user => {
     if (!user) return;
-    // Si no es el admin, es un cliente
     if (user.email !== ADMIN_EMAIL) {
       window._currentClient = user;
       localStorage.setItem("lx_client_session", JSON.stringify({
-        uid: user.uid,
-        name: user.displayName || "",
-        email: user.email,
-        photo: user.photoURL || ""
+        uid: user.uid, name: user.displayName || "", email: user.email, photo: user.photoURL || ""
       }));
       if (typeof window._onClientLogin === "function") window._onClientLogin(user);
     }
@@ -684,6 +654,23 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
 .btn-del { padding: 0.5rem 1rem; font-size: 0.85rem; background: var(--red-soft); border: 1px solid #fecaca; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600; color: var(--red); transition: 0.2s; } .btn-del:hover { background: var(--red); color: #fff; border-color: var(--red); }
 .img-preview { max-width: 140px; max-height: 140px; border-radius: var(--radius-sm); margin-top: 0.8rem; display: none; border: 1px solid var(--border); object-fit: cover; }
 
+/* Modals */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(5px); z-index: 200; align-items: center; justify-content: center; padding: 1rem; animation: fadeIn 0.2s ease; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius-xl); padding: 2rem; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); -webkit-overflow-scrolling: touch; }
+.modal h3 { font-family: "Plus Jakarta Sans", serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem; color: var(--dark); }
+.modal-footer { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; flex-wrap: wrap; }
+
+/* Quote & Success */
+.quote-modal { max-width: 750px; }
+.quote-header { text-align: center; padding-bottom: 1.5rem; border-bottom: 2px dashed var(--border); margin-bottom: 1.5rem; }
+#quoteBody { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.quote-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; margin-bottom: 1rem; min-width: 480px; }
+.quote-table th { background: var(--bg); color: var(--text-muted); padding: 0.8rem 1rem; text-align: left; font-size: 0.85rem; text-transform: uppercase; border-radius: 6px; }
+.quote-table td { padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); font-weight: 500; }
+.quote-table tr.quote-total-row td { font-weight: 800; font-size: 1.2rem; border-top: 2px solid var(--dark); }
+.order-success { text-align: center; padding: 2rem 0; } .order-success .check { font-size: 5rem; margin-bottom: 1.5rem; animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+@keyframes scaleIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
 
 /* ── Página Detalle Producto ── */
 #page-product { display:none; min-height:100vh; background:var(--bg); animation:fadeIn 0.2s ease; }
@@ -716,24 +703,6 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
 .pd-fixed-bar .pd-btn-add { flex:1; background:var(--accent); color:#fff; border:none; border-radius:var(--radius-sm); padding:1rem; font-size:1rem; font-weight:700; cursor:pointer; font-family:inherit; transition:0.2s; }
 .pd-fixed-bar .pd-btn-add:disabled { background:var(--border); color:var(--text-muted); cursor:not-allowed; }
 .pd-fixed-bar .pd-btn-share2 { background:var(--bg); border:1.5px solid var(--border); color:var(--dark); border-radius:var(--radius-sm); padding:1rem 1.1rem; font-size:1.1rem; cursor:pointer; font-family:inherit; transition:0.2s; white-space:nowrap; font-weight:700; }
-
-/* Modals */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(5px); z-index: 200; align-items: center; justify-content: center; padding: 1rem; animation: fadeIn 0.2s ease; }
-.modal-overlay.open { display: flex; }
-.modal { background: var(--surface); border-radius: var(--radius-xl); padding: 2rem; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); -webkit-overflow-scrolling: touch; }
-.modal h3 { font-family: "Plus Jakarta Sans", serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem; color: var(--dark); }
-.modal-footer { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; flex-wrap: wrap; }
-
-/* Quote & Success */
-.quote-modal { max-width: 750px; }
-.quote-header { text-align: center; padding-bottom: 1.5rem; border-bottom: 2px dashed var(--border); margin-bottom: 1.5rem; }
-#quoteBody { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.quote-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; margin-bottom: 1rem; min-width: 480px; }
-.quote-table th { background: var(--bg); color: var(--text-muted); padding: 0.8rem 1rem; text-align: left; font-size: 0.85rem; text-transform: uppercase; border-radius: 6px; }
-.quote-table td { padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); font-weight: 500; }
-.quote-table tr.quote-total-row td { font-weight: 800; font-size: 1.2rem; border-top: 2px solid var(--dark); }
-.order-success { text-align: center; padding: 2rem 0; } .order-success .check { font-size: 5rem; margin-bottom: 1.5rem; animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-@keyframes scaleIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
 
 /* Loaders & Toasts */
 .loading-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; color: #fff; gap: 1rem; }
@@ -855,8 +824,6 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
 .client-tab.active { background: var(--dark); color: #fff; }
 .client-error { background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 0.8rem 1rem; font-size: 0.88rem; color: #991b1b; margin-bottom: 1rem; display: none; }
 .client-error.show { display: block; }
-
-/* Dashboard del cliente */
 .client-dashboard { max-width: 640px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
 .client-profile-bar { background: var(--gradient-primary); border-radius: var(--radius-lg); padding: 1.5rem; display: flex; align-items: center; gap: 1.2rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-glow); color: #fff; }
 .client-avatar-big { width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; color: #fff; flex-shrink: 0; overflow: hidden; border: 2px solid rgba(255,255,255,0.5); }
@@ -868,8 +835,6 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
 .client-section-tab:hover { border-color: var(--accent); color: var(--accent); }
 .client-section-tab.active { background: var(--dark); color: #fff; border-color: var(--dark); }
 .client-panel { display: none; } .client-panel.active { display: block; animation: fadeIn 0.25s ease; }
-
-/* Tarjeta de pedido cliente */
 .client-order-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.2rem; margin-bottom: 1rem; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.2s; }
 .client-order-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 .client-order-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem; }
@@ -877,8 +842,6 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
 .client-order-date { font-size: 0.82rem; color: var(--text-muted); }
 .client-order-items { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.5; }
 .client-order-total { font-weight: 800; color: var(--accent); font-size: 1.1rem; }
-
-/* Direcciones */
 .client-address-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.2rem; margin-bottom: 0.8rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; transition: all 0.2s; }
 .client-address-card:hover { border-color: rgba(99,102,241,0.3); }
 .client-address-label { font-weight: 700; font-size: 0.95rem; color: var(--dark); margin-bottom: 0.3rem; }
@@ -888,7 +851,6 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
 .add-address-form { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.2rem; margin-top: 1rem; display: none; }
 .add-address-form.open { display: block; animation: fadeIn 0.2s ease; }
 @media(max-width:600px){ .client-profile-bar { flex-direction: column; text-align: center; } }
-
 </style>
   <!-- Favicon (logo pequeño en la pestaña) -->
   <link rel="icon" type="image/png" href="https://TU-URL-DEL-LOGO.png">
@@ -906,7 +868,7 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
 
 <nav class="navbar">
   <div class="nav-logo">
-    <span id="storeNameEl">DS DISTRIBUIDORA SAN FRANCISCO TEMPORADA</span>
+    <span id="storeNameEl">DS DISTRIBUIDORA SAN FRANCISCO NO.3</span>
   </div>
   <div class="nav-links">
     <button class="nav-btn active" onclick="showPage('shop')" title="Tienda" aria-label="Tienda">
@@ -942,7 +904,7 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
     <div class="hero-logo-wrap">
       <img id="heroLogo" src="" alt="Logo">
     </div>
-    <h1 id="heroTitle">Bienvenido a<br><span>DS DISTRIBUIDORA SAN FRANCISCO TEMPORADA</span></h1>
+    <h1 id="heroTitle">Bienvenido a<br><span>DS DISTRIBUIDORA SAN FRANCISCO NO.3</span></h1>
     <p id="heroSubtitle">Los mejores productos al mejor precio</p>
   </div>
   <h2 class="section-title">Catálogo de Productos</h2>
@@ -1383,7 +1345,8 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
       </div>
       <button class="btn btn-save" style="margin-top:1.5rem" onclick="saveSocialLinks()">💾 Guardar Redes Sociales</button>
     </div>
-  </div><!-- fin panel-store -->
+  </div>
+  <div class="admin-panel" id="panel-shipping">
     <div class="settings-card">
       <h4>Costo de Envío por Municipio</h4>
       <div style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:flex-end">
@@ -1532,7 +1495,7 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
   <div class="modal">
     <h3>Confirmar Pedido</h3>
     <div class="form-group"><label>Nombre Completo *</label><input type="text" id="buyerName" placeholder="Tu nombre completo"></div>
-    <div class="form-group"><label>Contacto (teléfono o email) *</label><input type="text" id="buyerContact" placeholder="5555-1234"></div>
+    <div class="form-group"><label>WhatsApp o Gmail *</label><input type="text" id="buyerContact" placeholder="Ej: 5555-1234 o tunombre@gmail.com"></div>
     <div class="form-group">
       <label>Departamento *</label>
       <select id="buyerDept" onchange="loadMunicipios()"><option value="">Selecciona</option></select>
@@ -1575,7 +1538,7 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
   <div class="modal quote-modal">
     <div class="quote-header">
       <div style="font-size:3rem; margin-bottom: 0.5rem">📋</div>
-      <h3 id="quoteStoreName" style="margin:0 0 0.5rem; font-size:1.8rem;">DS DISTRIBUIDORA SAN FRANCISCO TEMPORADA</h3>
+      <h3 id="quoteStoreName" style="margin:0 0 0.5rem; font-size:1.8rem;">DS DISTRIBUIDORA SAN FRANCISCO NO.3</h3>
       <div style="font-size:0.95rem;color:var(--text-muted);font-weight:500;" id="quoteDate"></div>
     </div>
     <div style="margin-bottom:1.5rem">
@@ -1622,14 +1585,13 @@ let GT_ALDEAS = {};
 let products=[], orders=[], cart=[];
 let editingId=null, loggedIn=false, currentPage=1;
 const PAGE_SIZE=24;
-let storeSettings={name:"DS DISTRIBUIDORA SAN FRANCISCO TEMPORADA",desc:"Los mejores productos al mejor precio",logo:"",waNumber:"",credentials:"Dssanfrancisco:sfu2026",mayoreoConfig:null,shippingZones:{},defaultShipping:25,freeShippingAt:300,
+let storeSettings={name:"DS DISTRIBUIDORA SAN FRANCISCO NO.3",desc:"Los mejores productos al mejor precio",logo:"",waNumber:"",credentials:"Dssanfrancisco:sfu2026",mayoreoConfig:null,shippingZones:{},defaultShipping:25,freeShippingAt:300,
   paymentMethods:{
     cod:{enabled:true,label:"Pago Contra Entrega",icon:"🚚",desc:""},
     transfer:{enabled:false,label:"Transferencia Bancaria",icon:"🏦",desc:""},
     deposit:{enabled:false,label:"Depósito Bancario",icon:"💵",desc:""},
     pickup:{enabled:false,label:"Recoge en Tienda",icon:"🏪",desc:""}
   },
-  pickupStores:[],
   theme:{
     bg:"#f8fafc",
     surface:"#ffffff",
@@ -1640,15 +1602,7 @@ let storeSettings={name:"DS DISTRIBUIDORA SAN FRANCISCO TEMPORADA",desc:"Los mej
     neonEnabled:false,
     customPalettes:[]
   },
-  socialLinks:{
-    whatsapp:{enabled:false,url:"",iconUrl:""},
-    facebook:{enabled:false,url:"",iconUrl:""},
-    instagram:{enabled:false,url:"",iconUrl:""},
-    tiktok:{enabled:false,url:"",iconUrl:""},
-    youtube:{enabled:false,url:"",iconUrl:""},
-    twitter:{enabled:false,url:"",iconUrl:""},
-    telegram:{enabled:false,url:"",iconUrl:""}
-  }
+  pickupStores:[]
 };
 let mayoreoMode=false, mayoreoTipo="";
 // Tipos de precio: publico y mayoristas (con sub-tipos)
@@ -1774,13 +1728,11 @@ function init(){
       if(qp2) targetSlug = toSlug(qp2);
     }
     if(!targetSlug) return;
-
     function doHighlight(){
       const found = products.find(p => toSlug(p.name) === targetSlug);
       if(!found) return;
       openProductDetail(found.id);
     }
-
     if(products.length > 0){
       doHighlight();
     } else {
@@ -2485,6 +2437,13 @@ function onBuyerAldeaChange(){
   const aldeaBox=document.getElementById("buyerAldeaNewBox"); if(aldeaBox) aldeaBox.style.display = val==="__new__" ? "flex" : "none";
   updateCheckoutTotal();
 }
+function isValidWaOrGmail(v){
+  const s=(v||"").trim();
+  if(!s) return false;
+  if(s.includes("@")) return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(s);
+  const digits=s.replace(/[^0-9]/g,"");
+  return digits.length>=8;
+}
 function placeOrder(){
   const name=document.getElementById("buyerName").value.trim();
   const contact=document.getElementById("buyerContact").value.trim();
@@ -2493,6 +2452,7 @@ function placeOrder(){
   const address=document.getElementById("buyerAddress").value.trim();
   const notes=document.getElementById("buyerNotes").value.trim();
   if(!name||!contact||!dept||!mun){toast("Completa todos los campos requeridos (*)","error");return;}
+  if(!isValidWaOrGmail(contact)){toast("Ingresa un número de WhatsApp válido o un correo de Gmail (@gmail.com)","error");return;}
   if(dept==="__new__"||mun==="__new__"){toast("Presiona 'Agregar' para confirmar tu departamento/municipio nuevo","error");return;}
   if(document.getElementById("buyerAldea")?.value==="__new__"){toast("Presiona 'Agregar' para confirmar tu lugar nuevo","error");return;}
   const selectedPayment=getSelectedPaymentMethod();
@@ -2517,7 +2477,7 @@ function placeOrder(){
   orders.push(order);
   localStorage.setItem("lx_orders",JSON.stringify(orders));
   if(window._fb && window._fb.ready()) window._fb.saveOrder(order);
-  const wa=storeSettings.waNumber;
+  const wa=(storeSettings.waNumber||"").replace(/[^0-9]/g,"");
   if(wa){
     const tipoLabel=PRECIO_TIPOS[mayoreoTipo||"publico"]?.label||"Público";
     let msg="Nuevo Pedido #"+order.id+"\n"+name+" | "+contact+"\n"+dept+", "+mun+(address?" - "+address:"")+"\n";
@@ -2810,7 +2770,6 @@ function saveProduct(){
   const btnSave=document.querySelector(".btn-save[onclick='saveProduct()']");
   const finalize=(resolvedImgs)=>{
     productObj.images = resolvedImgs;
-    // Backward compat: set img/imgUrl to first image
     const first = resolvedImgs[0]||"";
     if(first.startsWith("data:")){productObj.img=first; productObj.imgUrl="";}
     else{productObj.imgUrl=first; productObj.img="";}
@@ -2821,7 +2780,6 @@ function saveProduct(){
     closeModal(); renderAdminProducts(); populateInventorySelect(); renderShop();
   };
 
-  // Upload any base64 images to Cloudinary
   const base64Indices = validImgs.map((m,i)=>m.type==="base64"?i:-1).filter(i=>i>=0);
   if(base64Indices.length){
     if(btnSave){btnSave.disabled=true;btnSave.textContent="Subiendo imágenes (0/"+base64Indices.length+")...";}
@@ -2834,7 +2792,6 @@ function saveProduct(){
        console.error("Cloudinary error:",err);
        if(btnSave){btnSave.disabled=false;btnSave.textContent="Guardar Producto";}
        toast("⚠️ Error al subir imagen: "+err.message,"error");
-       // Remove failed product if new
        if(!editingId) products=products.filter(p=>p!==productObj);
      });
   } else {
@@ -2871,8 +2828,10 @@ function _renderMultiImgList(){
     return;
   }
   cont.innerHTML = _multiImgs.map((img, i) => {
-    const thumb = img.src ? "<img class='img-row-thumb' src='"+img.src+"' onerror=\"this.style.background='var(--bg)'\">": "<div class='img-row-thumb' style='display:flex;align-items:center;justify-content:center;font-size:1.4rem'>🖼</div>";
-    const label = img.type==="base64" ? "<span style='font-size:0.82rem;color:var(--text-muted);font-style:italic;flex:1'>Imagen subida"+(i===0?" (principal)":"")+"</span>" : "<input type='text' value='"+img.src+"' placeholder='https://...' oninput='_updateImgUrl("+i+",this.value)' style='flex:1;border:none;outline:none;font-size:0.85rem;font-family:inherit;background:transparent;color:var(--dark);min-width:0'>";
+    const thumb = img.src ? "<img class='img-row-thumb' src='"+img.src+"' onerror='this.style.background=\"var(--bg)\"'>" : "<div class='img-row-thumb' style='display:flex;align-items:center;justify-content:center;font-size:1.4rem'>🖼</div>";
+    const label = img.type==="base64"
+      ? "<span style='font-size:0.82rem;color:var(--text-muted);font-style:italic;flex:1'>Imagen subida"+(i===0?" (principal)":"")+"</span>"
+      : "<input type='text' value='"+img.src+"' placeholder='https://...' oninput='_updateImgUrl("+i+",this.value)' style='flex:1;border:none;outline:none;font-size:0.85rem;font-family:inherit;background:transparent;color:var(--dark);min-width:0'>";
     return "<div class='img-row'>"+(i===0?"<span title='Principal' style='font-size:0.75rem;background:var(--accent);color:#fff;border-radius:100px;padding:0.15rem 0.5rem;flex-shrink:0;font-weight:700'>⭐</span>":"")+thumb+label+"<button class='img-row-del' onclick='_removeImg("+i+")' title='Quitar'>×</button></div>";
   }).join("");
 }
@@ -2888,7 +2847,6 @@ function addImgUrlRow(){
   if(_multiImgs.length>=5){toast("Máximo 5 imágenes","error");return;}
   _multiImgs.push({type:"url", src:""});
   _renderMultiImgList();
-  // Focus último input
   setTimeout(()=>{
     const inputs=document.querySelectorAll("#multiImgList .img-row input[type=text]");
     if(inputs.length) inputs[inputs.length-1].focus();
@@ -2918,8 +2876,7 @@ function addImgFileRows(input){
   input.value="";
 }
 
-function previewImg(input){ /* legacy — no-op (multi-image ahora) */ }
-
+function previewImg(input){ /* legacy — no-op */ }
 
 async function uploadToImgBB(base64data){
   const formData=new FormData();
@@ -3031,7 +2988,7 @@ function updateFbStatusBadge(){
 }
 
 function saveStoreSettings(){
-  storeSettings.name=document.getElementById("settingName").value.trim()||"DS DISTRIBUIDORA SAN FRANCISCO TEMPORADA";
+  storeSettings.name=document.getElementById("settingName").value.trim()||"DS DISTRIBUIDORA SAN FRANCISCO NO.3";
   storeSettings.desc=document.getElementById("settingDesc").value.trim();
   storeSettings.waNumber=document.getElementById("settingWA").value.trim();
   storeSettings.credentials=document.getElementById("settingCreds").value.trim()||"distribuidora:genesis2024";
@@ -3095,7 +3052,7 @@ function renderShippingZones(){
 
 function openQuote(){
   if(!cart.length){toast("El carrito está vacío","error");return;}
-  document.getElementById("quoteStoreName").textContent=storeSettings.name||"DS DISTRIBUIDORA SAN FRANCISCO TEMPORADA";
+  document.getElementById("quoteStoreName").textContent=storeSettings.name||"DS DISTRIBUIDORA SAN FRANCISCO NO.3";
   document.getElementById("quoteDate").textContent=new Date().toLocaleDateString("es-GT",{year:"numeric",month:"long",day:"numeric"});
 
   const esMayoreo=mayoreoMode&&mayoreoTipo&&mayoreoTipo!=="publico";
@@ -3117,7 +3074,10 @@ function openQuote(){
 }
 function printQuote(){window.print();}
 function shareQuoteWhatsApp(){
-  const wa=storeSettings.waNumber, name=storeSettings.name||"DS DISTRIBUIDORA SAN FRANCISCO TEMPORADA";
+  const waRaw=storeSettings.waNumber||"";
+  const wa=waRaw.replace(/[^0-9]/g,"");
+  if(!wa){toast("Configura el número de WhatsApp del negocio en Ajustes antes de compartir","error");return;}
+  const name=storeSettings.name||"DS DISTRIBUIDORA SAN FRANCISCO NO.3";
   const esMayoreo=mayoreoMode&&mayoreoTipo&&mayoreoTipo!=="publico";
   const labelActivo=esMayoreo?(MAYOREO_SUB_TIPOS[mayoreoTipo]?.label||mayoreoTipo):"Público";
   const client=document.getElementById("quoteClient").value;
@@ -3127,7 +3087,7 @@ function shareQuoteWhatsApp(){
   cart.forEach(ci=>{const p=products.find(x=>x.id===ci.id);if(!p)return;const pu=getPrecioCarritoItem(p,ci.qty).precio;msg+="- "+p.name+" x"+ci.qty+" = Q"+(pu*ci.qty).toFixed(2)+"\n";});
   const total=cart.reduce((s,ci)=>{const p=products.find(x=>x.id===ci.id);return s+(p?getPrecioCarritoItem(p,ci.qty).precio*ci.qty:0);},0);
   msg+="\nTOTAL: Q"+total.toFixed(2);
-  window.open("https://wa.me/"+(wa||"")+"?text="+encodeURIComponent(msg),"_blank");
+  window.open("https://wa.me/"+wa+"?text="+encodeURIComponent(msg),"_blank");
 }
 
 
@@ -3222,20 +3182,19 @@ function importInventoryCSV(e){
         var precio_mayor=idx.precio_mayor>=0?parseFloat(cols[idx.precio_mayor])||0:0;
         var unidades_mayor=idx.unidades_mayor>=0?parseInt(cols[idx.unidades_mayor])||0:0;
         var precio_mayoristas=precio_docena||precio_media_docena||precio_fardo||precio_mayor||0;
-        // Buscar duplicado solo por SKU o nombre (ignorar id del CSV para evitar duplicados)
         var ex=sku
-          ? products.find(function(p){return p.sku&&p.sku.trim()===sku.trim();})
-              || products.find(function(p){return p.name.toLowerCase().trim()===name.toLowerCase().trim();})
+          ? products.find(function(p){return p.sku&&p.sku.trim()===sku.trim();})||products.find(function(p){return p.name.toLowerCase().trim()===name.toLowerCase().trim();})
           : products.find(function(p){return p.name.toLowerCase().trim()===name.toLowerCase().trim();});
         if(ex){Object.assign(ex,{sku:sku,name:name,price:price,stock:stock,desc:desc,imgUrl:imgUrl||ex.imgUrl||"",categoria:categoria,precio_oferta:precio_oferta,precio_media_docena:precio_media_docena,precio_docena:precio_docena,precio_fardo:precio_fardo,unidades_fardo:unidades_fardo,precio_mayor:precio_mayor,unidades_mayor:unidades_mayor,precio_mayoristas:precio_mayoristas});updated++;}
         else{products.push({id:nextId(),sku:sku,name:name,price:price,stock:stock,desc:desc,img:"",imgUrl:imgUrl,categoria:categoria,precio_oferta:precio_oferta,precio_media_docena:precio_media_docena,precio_docena:precio_docena,precio_fardo:precio_fardo,unidades_fardo:unidades_fardo,precio_mayor:precio_mayor,unidades_mayor:unidades_mayor,precio_mayoristas:precio_mayoristas});added++;}
       }
       sortProductsAZ(); saveProducts();renderAdminProducts();populateInventorySelect();renderShop();
       toast("Importado: "+added+" nuevos, "+updated+" actualizados","success");
-    }catch(err){toast("Error al leer el CSV","error");console.error(err);}
+    }catch(err){toast("Error al leer el CSV: "+(err&&err.message?err.message:String(err)),"error");console.error(err);}
     e.target.value="";
   };
-  reader.readAsText(file,"UTF-8");
+  // Intentar UTF-8, si hay error de encoding usar latin1
+  try{ reader.readAsText(file,"UTF-8"); }catch(e){ reader.readAsText(file,"ISO-8859-1"); }
 }
 
 function parseCSVRow(line){
@@ -3255,253 +3214,14 @@ function parseCSVRow(line){
 let _toastTimer;
 let _sharePopupTimer;
 
-
-// ── DETALLE DE PRODUCTO (Página completa) ────────────────────────
-let _pdCurrentId = null;
-
-function openProductDetail(id) {
-  const p = products.find(x => x.id === id);
-  if (!p) return;
-  _pdCurrentId = id;
-
-  // Collect all images (multi-image array or legacy single)
-  const allImgs = (p.images && p.images.length) ? p.images : (p.img||p.imgUrl ? [p.img||p.imgUrl] : []);
-  let _pdActiveImg = 0;
-
-  const precio = getPrecioProducto(p);
-  const avail = p.stock > 0;
-  const tieneOferta = (!mayoreoMode||mayoreoTipo==="publico"||!mayoreoTipo) && p.precio_oferta && p.precio_oferta>0 && p.precio_oferta<p.price;
-  const tieneEspecial = tieneEspecialActivo(p);
-
-  // Store imgs on window
-  window._pdAllImgs = allImgs;
-  window._pdActiveImg = 0;
-
-  // Imagen principal — carrusel deslizable estilo Mercado Libre
-  const imgWrap = document.getElementById("pdImgWrap2");
-  const old = document.getElementById("pdGalleryThumbs"); if(old) old.remove();
-
-  if (allImgs.length) {
-    // Construir carrusel
-    imgWrap.innerHTML = "";
-    imgWrap.style.cssText = "position:relative;overflow:hidden;background:#fff;";
-
-    // Track deslizable
-    const track = document.createElement("div");
-    track.id = "pdCarouselTrack";
-    track.style.cssText = "display:flex;transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);will-change:transform;";
-    allImgs.forEach((src, i) => {
-      const slide = document.createElement("div");
-      slide.style.cssText = "min-width:100%;display:flex;align-items:center;justify-content:center;background:#fff;";
-      const img = document.createElement("img");
-      img.src = src; img.alt = p.name;
-      img.style.cssText = "width:100%;max-height:380px;object-fit:contain;display:block;";
-      img.onerror = function(){ this.parentNode.innerHTML="<div style='width:100%;height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:4rem;color:#94a3b8;gap:0.5rem'>🖼<span style=\"font-size:1rem\">Sin imagen</span></div>"; };
-      slide.appendChild(img);
-      track.appendChild(slide);
-    });
-    imgWrap.appendChild(track);
-
-    // Puntos indicadores (solo si hay más de 1 imagen)
-    if(allImgs.length > 1){
-      const dots = document.createElement("div");
-      dots.id = "pdCarouselDots";
-      dots.style.cssText = "position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:5;pointer-events:none;";
-      allImgs.forEach((_,i)=>{
-        const d = document.createElement("span");
-        d.dataset.idx = i;
-        d.style.cssText = "width:8px;height:8px;border-radius:50%;background:"+(i===0?"var(--accent)":"rgba(0,0,0,0.22)")+";transition:background 0.2s,transform 0.2s;display:inline-block;"+(i===0?"transform:scale(1.25);":"");
-        dots.appendChild(d);
-      });
-      imgWrap.appendChild(dots);
-
-      // Touch swipe
-      let _tsX = 0, _tsY = 0, _dragging = false, _dx = 0;
-      track.addEventListener("touchstart", e=>{
-        _tsX = e.touches[0].clientX; _tsY = e.touches[0].clientY; _dragging = true; _dx = 0;
-        track.style.transition = "none";
-      }, {passive:true});
-      track.addEventListener("touchmove", e=>{
-        if(!_dragging) return;
-        _dx = e.touches[0].clientX - _tsX;
-        const dy = e.touches[0].clientY - _tsY;
-        if(Math.abs(_dx) < Math.abs(dy) && Math.abs(_dx) < 10) return; // scroll vertical
-        const cur = window._pdActiveImg;
-        track.style.transform = "translateX(calc(-"+cur+"00% + "+_dx+"px))";
-      }, {passive:true});
-      track.addEventListener("touchend", ()=>{
-        if(!_dragging) return; _dragging = false;
-        track.style.transition = "transform 0.35s cubic-bezier(0.4,0,0.2,1)";
-        const cur = window._pdActiveImg;
-        if(_dx < -50 && cur < allImgs.length-1) _pdSetImg(cur+1);
-        else if(_dx > 50 && cur > 0) _pdSetImg(cur-1);
-        else _pdSetImg(cur); // rebote
-      });
-
-      // Swipe con mouse (desktop)
-      let _msX = 0, _mDragging = false, _mdx = 0;
-      track.addEventListener("mousedown", e=>{ _msX=e.clientX; _mDragging=true; _mdx=0; track.style.transition="none"; track.style.cursor="grabbing"; });
-      track.addEventListener("mousemove", e=>{ if(!_mDragging) return; _mdx=e.clientX-_msX; const cur=window._pdActiveImg; track.style.transform="translateX(calc(-"+cur+"00% + "+_mdx+"px))"; });
-      track.addEventListener("mouseup", ()=>{ if(!_mDragging)return; _mDragging=false; track.style.transition="transform 0.35s cubic-bezier(0.4,0,0.2,1)"; track.style.cursor="grab"; const cur=window._pdActiveImg; if(_mdx<-50&&cur<allImgs.length-1)_pdSetImg(cur+1); else if(_mdx>50&&cur>0)_pdSetImg(cur-1); else _pdSetImg(cur); });
-      track.addEventListener("mouseleave", ()=>{ if(_mDragging){_mDragging=false;track.style.transition="transform 0.35s cubic-bezier(0.4,0,0.2,1)";track.style.cursor="grab";_pdSetImg(window._pdActiveImg);} });
-      track.style.cursor = "grab";
-    }
-  } else {
-    imgWrap.innerHTML = "<div class='pd-main-img-placeholder'>🖼<span>Sin imagen</span></div>";
-  }
-
-  // Breadcrumb
-  document.getElementById("pdBreadcrumb").textContent = p.name;
-
-  // Badge
-  const badge = document.getElementById("pdBadge2");
-  if (tieneOferta) badge.innerHTML = "<span class='pd-badge2' style='background:var(--red-soft);color:var(--red)'>🏷️ OFERTA</span>";
-  else if (tieneEspecial) badge.innerHTML = "<span class='pd-badge2' style='background:#fff3cd;color:#92400e'>"+(({...PRECIO_TIPOS,...MAYOREO_SUB_TIPOS})[mayoreoTipo]||{icon:'🏪',label:'Mayoristas'}).icon+" "+(({...PRECIO_TIPOS,...MAYOREO_SUB_TIPOS})[mayoreoTipo]||{icon:'🏪',label:'Mayoristas'}).label+"</span>";
-  else badge.innerHTML = "";
-
-  document.getElementById("pdName2").textContent = p.name;
-  document.getElementById("pdSku2").textContent = p.sku ? "Código: "+p.sku : "";
-  document.getElementById("pdDesc2").textContent = p.desc || "";
-
-  const priceOldEl = document.getElementById("pdPriceOld2");
-  if (tieneOferta || tieneEspecial) {
-    priceOldEl.textContent = "Q"+p.price.toFixed(2);
-    priceOldEl.style.display = "block";
-  } else {
-    priceOldEl.style.display = "none";
-  }
-  const priceEl = document.getElementById("pdPrice2");
-  priceEl.textContent = "Q"+precio.toFixed(2);
-  priceEl.style.color = tieneOferta ? "var(--red)" : "var(--accent)";
-
-  const fardoInfoEl = document.getElementById("pdFardoInfo2");
-  const uf = parseInt(p.unidades_fardo,10)||0;
-  if (mayoreoTipo==="fardo" && parseFloat(p.precio_fardo)>0 && uf>0) {
-    fardoInfoEl.textContent = "🎁 FARDO "+uf+"UDS";
-    fardoInfoEl.style.display = "block";
-  } else {
-    fardoInfoEl.style.display = "none";
-  }
-
-  const extraInfoEl = document.getElementById("pdExtraInfo2");
-  const ue = parseInt(p.unidades_mayor,10)||0;
-  if (mayoreoTipo==="mayor" && parseFloat(p.precio_mayor)>0 && ue>0) {
-    extraInfoEl.textContent = "📦 "+ue+"UDS";
-    extraInfoEl.style.display = "block";
-  } else {
-    extraInfoEl.style.display = "none";
-  }
-
-  const stockEl = document.getElementById("pdStock2");
-  if (avail) { stockEl.textContent = "✓ En existencia ("+p.stock+" disponibles)"; stockEl.style.color = "var(--green)"; }
-  else { stockEl.textContent = "✗ Agotado"; stockEl.style.color = "var(--red)"; }
-
-  const btn = document.getElementById("pdBtnCart2");
-  btn.disabled = !avail;
-  btn.textContent = avail ? "🛒 Agregar al carrito" : "Sin stock";
-
-  // Cambiar URL y mostrar página
-  const slug = toSlug(p.name);
-  window.history.pushState({ productId: id }, p.name, window.location.origin + "/" + slug);
-  document.title = p.name + " — " + (storeSettings.name || "Tienda");
-
-  // Mostrar página producto, ocultar las demás
-  document.querySelectorAll(".page").forEach(pg => pg.classList.remove("active"));
-  document.getElementById("page-product").classList.add("active");
-  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-  window.scrollTo({top: 0, behavior: "instant"});
-}
-
-function closeProductDetail() {
-  _pdCurrentId = null;
-  window._pdAllImgs = [];
-  window._pdActiveImg = 0;
-  window.history.pushState({}, storeSettings.name || "Tienda", window.location.origin + "/");
-  document.title = storeSettings.name || "Tienda";
-  showPage("shop");
-}
-
-function _pdSetImg(idx){
-  const imgs = window._pdAllImgs;
-  if(!imgs || idx < 0 || idx >= imgs.length) return;
-  window._pdActiveImg = idx;
-  const track = document.getElementById("pdCarouselTrack");
-  if(track) track.style.transform = "translateX(-" + idx + "00%)";
-  // Actualizar puntos
-  const dots = document.querySelectorAll("#pdCarouselDots span");
-  dots.forEach((d,i)=>{
-    d.style.background = i===idx ? "var(--accent)" : "rgba(0,0,0,0.22)";
-    d.style.transform = i===idx ? "scale(1.25)" : "scale(1)";
-  });
-}
-
-function pdAddToCart() {
-  if (!_pdCurrentId) return;
-  addToCart(_pdCurrentId);
-}
-
-function pdShare() {
-  if (!_pdCurrentId) return;
-  const p = products.find(x => x.id === _pdCurrentId);
-  if (!p) return;
-  const slug = toSlug(p.name);
-  const url = window.location.origin + "/" + slug;
-  const shareData = { title: p.name, text: p.name + " - Q" + (p.price||0).toFixed(2), url };
-  const showSharePopup = (msg) => {
-    const popup = document.getElementById('sharePopup');
-    if (!popup) return;
-    popup.textContent = msg; popup.classList.add('show');
-    clearTimeout(_sharePopupTimer);
-    _sharePopupTimer = setTimeout(() => popup.classList.remove('show'), 2500);
-  };
-  if (navigator.share) { navigator.share(shareData).catch(() => {}); }
-  else if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => showSharePopup('🔗 Enlace copiado')); }
-  else {
-    const ta = document.createElement('textarea');
-    ta.value = url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    showSharePopup('🔗 Enlace copiado');
-  }
-}
-
-// Botón atrás del navegador
-window.addEventListener("popstate", (e) => {
-  if (!e.state || !e.state.productId) {
-    _pdCurrentId = null;
-    showPage("shop");
-  }
-});
-
-function toSlug(str){
-  return (str||"")
-    .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-    .replace(/\./g,"-")
-    .replace(/[^a-z0-9\s-]/g,"")
-    .trim()
-    .replace(/\s+/g,"-")
-    .replace(/-+/g,"-");
-}
-
 function shareProduct(id, event) {
   event.stopPropagation();
   const p = products.find(x => x.id === id);
   if (!p) return;
-  const slug = toSlug(p.name);
-  const img = p.img || p.imgUrl || "";
-  const price = (p.price||0).toFixed(2);
-  const desc = (p.desc||"").substring(0,120);
-  // URL con datos del producto para Open Graph
-  const ogParams = new URLSearchParams({
-    slug: slug,
-    title: p.name,
-    price: price,
-    desc: desc || ("Q"+price+" — "+storeSettings.name),
-    ...(img ? {img: img} : {})
-  });
-  const url = window.location.origin + "/" + slug;
+  const url = window.location.href.split('?')[0] + '?producto=' + encodeURIComponent(p.name);
   const shareData = {
     title: p.name,
-    text: p.name + " - Q" + price,
+    text: '¡Mira este producto! ' + p.name + ' - Q' + (p.price||0).toFixed(2),
     url: url
   };
   const showSharePopup = (msg) => {
@@ -3701,6 +3421,220 @@ function toast(msg,type){
   const el=document.getElementById("toast");
   el.textContent=msg; el.className="toast show"+(type?" "+type:"");
   clearTimeout(_toastTimer); _toastTimer=setTimeout(()=>{el.className="toast";},3000);
+}
+
+// ── DETALLE DE PRODUCTO (Página completa) ────────────────────────
+let _pdCurrentId = null;
+
+function openProductDetail(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  _pdCurrentId = id;
+  const precio = getPrecioProducto(p);
+  const avail = p.stock > 0;
+  const tieneOferta = (!mayoreoMode||mayoreoTipo==="publico"||!mayoreoTipo) && p.precio_oferta && p.precio_oferta>0 && p.precio_oferta<p.price;
+  const tieneEspecial = tieneEspecialActivo(p);
+
+  // Collect all images (multi-image array or legacy single)
+  const allImgs = (p.images && p.images.length) ? p.images : (p.img||p.imgUrl ? [p.img||p.imgUrl] : []);
+
+  // Store imgs on window
+  window._pdAllImgs = allImgs;
+  window._pdActiveImg = 0;
+
+  // Imagen principal — carrusel deslizable estilo Mercado Libre
+  const imgWrap = document.getElementById("pdImgWrap2");
+  const old = document.getElementById("pdGalleryThumbs"); if(old) old.remove();
+
+  if (allImgs.length) {
+    imgWrap.innerHTML = "";
+    imgWrap.style.cssText = "position:relative;overflow:hidden;background:#fff;";
+
+    const track = document.createElement("div");
+    track.id = "pdCarouselTrack";
+    track.style.cssText = "display:flex;transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);will-change:transform;";
+    allImgs.forEach((src, i) => {
+      const slide = document.createElement("div");
+      slide.style.cssText = "min-width:100%;display:flex;align-items:center;justify-content:center;background:#fff;";
+      const img = document.createElement("img");
+      img.src = src; img.alt = p.name;
+      img.style.cssText = "width:100%;max-height:380px;object-fit:contain;display:block;";
+      img.onerror = function(){ this.parentNode.innerHTML="<div style='width:100%;height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:4rem;color:#94a3b8;gap:0.5rem'>🖼<span style=\"font-size:1rem\">Sin imagen</span></div>"; };
+      slide.appendChild(img);
+      track.appendChild(slide);
+    });
+    imgWrap.appendChild(track);
+
+    if(allImgs.length > 1){
+      const dots = document.createElement("div");
+      dots.id = "pdCarouselDots";
+      dots.style.cssText = "position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:5;pointer-events:none;";
+      allImgs.forEach((_,i)=>{
+        const d = document.createElement("span");
+        d.dataset.idx = i;
+        d.style.cssText = "width:8px;height:8px;border-radius:50%;background:"+(i===0?"var(--accent)":"rgba(0,0,0,0.22)")+";transition:background 0.2s,transform 0.2s;display:inline-block;"+(i===0?"transform:scale(1.25);":"");
+        dots.appendChild(d);
+      });
+      imgWrap.appendChild(dots);
+
+      let _tsX = 0, _tsY = 0, _dragging = false, _dx = 0;
+      track.addEventListener("touchstart", e=>{
+        _tsX = e.touches[0].clientX; _tsY = e.touches[0].clientY; _dragging = true; _dx = 0;
+        track.style.transition = "none";
+      }, {passive:true});
+      track.addEventListener("touchmove", e=>{
+        if(!_dragging) return;
+        _dx = e.touches[0].clientX - _tsX;
+        const dy = e.touches[0].clientY - _tsY;
+        if(Math.abs(_dx) < Math.abs(dy) && Math.abs(_dx) < 10) return;
+        const cur = window._pdActiveImg;
+        track.style.transform = "translateX(calc(-"+cur+"00% + "+_dx+"px))";
+      }, {passive:true});
+      track.addEventListener("touchend", ()=>{
+        if(!_dragging) return; _dragging = false;
+        track.style.transition = "transform 0.35s cubic-bezier(0.4,0,0.2,1)";
+        const cur = window._pdActiveImg;
+        if(_dx < -50 && cur < allImgs.length-1) _pdSetImg(cur+1);
+        else if(_dx > 50 && cur > 0) _pdSetImg(cur-1);
+        else _pdSetImg(cur);
+      });
+
+      let _msX = 0, _mDragging = false, _mdx = 0;
+      track.addEventListener("mousedown", e=>{ _msX=e.clientX; _mDragging=true; _mdx=0; track.style.transition="none"; track.style.cursor="grabbing"; });
+      track.addEventListener("mousemove", e=>{ if(!_mDragging) return; _mdx=e.clientX-_msX; const cur=window._pdActiveImg; track.style.transform="translateX(calc(-"+cur+"00% + "+_mdx+"px))"; });
+      track.addEventListener("mouseup", ()=>{ if(!_mDragging)return; _mDragging=false; track.style.transition="transform 0.35s cubic-bezier(0.4,0,0.2,1)"; track.style.cursor="grab"; const cur=window._pdActiveImg; if(_mdx<-50&&cur<allImgs.length-1)_pdSetImg(cur+1); else if(_mdx>50&&cur>0)_pdSetImg(cur-1); else _pdSetImg(cur); });
+      track.addEventListener("mouseleave", ()=>{ if(_mDragging){_mDragging=false;track.style.transition="transform 0.35s cubic-bezier(0.4,0,0.2,1)";track.style.cursor="grab";_pdSetImg(window._pdActiveImg);} });
+      track.style.cursor = "grab";
+    }
+  } else {
+    imgWrap.innerHTML = "<div class='pd-main-img-placeholder'>🖼<span>Sin imagen</span></div>";
+  }
+
+  document.getElementById("pdBreadcrumb").textContent = p.name;
+
+  const badge = document.getElementById("pdBadge2");
+  if (tieneOferta) badge.innerHTML = "<span class='pd-badge2' style='background:var(--red-soft);color:var(--red)'>🏷️ OFERTA</span>";
+  else if (tieneEspecial) badge.innerHTML = "<span class='pd-badge2' style='background:#fff3cd;color:#92400e'>"+(({...PRECIO_TIPOS,...MAYOREO_SUB_TIPOS})[mayoreoTipo]||{icon:'🏪',label:'Mayoristas'}).icon+" "+(({...PRECIO_TIPOS,...MAYOREO_SUB_TIPOS})[mayoreoTipo]||{icon:'🏪',label:'Mayoristas'}).label+"</span>";
+  else badge.innerHTML = "";
+
+  document.getElementById("pdName2").textContent = p.name;
+  document.getElementById("pdSku2").textContent = p.sku ? "Código: "+p.sku : "";
+  document.getElementById("pdDesc2").textContent = p.desc || "";
+
+  const priceOldEl = document.getElementById("pdPriceOld2");
+  if (tieneOferta || tieneEspecial) {
+    priceOldEl.textContent = "Q"+p.price.toFixed(2);
+    priceOldEl.style.display = "block";
+  } else {
+    priceOldEl.style.display = "none";
+  }
+  const priceEl = document.getElementById("pdPrice2");
+  priceEl.textContent = "Q"+precio.toFixed(2);
+  priceEl.style.color = tieneOferta ? "var(--red)" : "var(--accent)";
+
+  const fardoInfoEl = document.getElementById("pdFardoInfo2");
+  const uf = parseInt(p.unidades_fardo,10)||0;
+  if (mayoreoTipo==="fardo" && parseFloat(p.precio_fardo)>0 && uf>0) {
+    fardoInfoEl.textContent = "🎁 FARDO "+uf+"UDS";
+    fardoInfoEl.style.display = "block";
+  } else {
+    fardoInfoEl.style.display = "none";
+  }
+
+  const extraInfoEl = document.getElementById("pdExtraInfo2");
+  const ue = parseInt(p.unidades_mayor,10)||0;
+  if (mayoreoTipo==="mayor" && parseFloat(p.precio_mayor)>0 && ue>0) {
+    extraInfoEl.textContent = "📦 "+ue+"UDS";
+    extraInfoEl.style.display = "block";
+  } else {
+    extraInfoEl.style.display = "none";
+  }
+
+  const stockEl = document.getElementById("pdStock2");
+  if (avail) { stockEl.textContent = "✓ En existencia ("+p.stock+" disponibles)"; stockEl.style.color = "var(--green)"; }
+  else { stockEl.textContent = "✗ Agotado"; stockEl.style.color = "var(--red)"; }
+
+  const btn = document.getElementById("pdBtnCart2");
+  btn.disabled = !avail;
+  btn.textContent = avail ? "🛒 Agregar al carrito" : "Sin stock";
+
+  const slug = toSlug(p.name);
+  window.history.pushState({ productId: id }, p.name, window.location.origin + "/" + slug);
+  document.title = p.name + " — " + (storeSettings.name || "Tienda");
+
+  document.querySelectorAll(".page").forEach(pg => pg.classList.remove("active"));
+  document.getElementById("page-product").classList.add("active");
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  window.scrollTo({top: 0, behavior: "instant"});
+}
+
+function closeProductDetail() {
+  _pdCurrentId = null;
+  window._pdAllImgs = [];
+  window._pdActiveImg = 0;
+  window.history.pushState({}, storeSettings.name || "Tienda", window.location.origin + "/");
+  document.title = storeSettings.name || "Tienda";
+  showPage("shop");
+}
+
+function _pdSetImg(idx){
+  const imgs = window._pdAllImgs;
+  if(!imgs || idx < 0 || idx >= imgs.length) return;
+  window._pdActiveImg = idx;
+  const track = document.getElementById("pdCarouselTrack");
+  if(track) track.style.transform = "translateX(-" + idx + "00%)";
+  const dots = document.querySelectorAll("#pdCarouselDots span");
+  dots.forEach((d,i)=>{
+    d.style.background = i===idx ? "var(--accent)" : "rgba(0,0,0,0.22)";
+    d.style.transform = i===idx ? "scale(1.25)" : "scale(1)";
+  });
+}
+
+function pdAddToCart() {
+  if (!_pdCurrentId) return;
+  addToCart(_pdCurrentId);
+}
+
+function pdShare() {
+  if (!_pdCurrentId) return;
+  const p = products.find(x => x.id === _pdCurrentId);
+  if (!p) return;
+  const slug = toSlug(p.name);
+  const url = window.location.origin + "/" + slug;
+  const shareData = { title: p.name, text: p.name + " - Q" + (p.price||0).toFixed(2), url };
+  const showSharePopup = (msg) => {
+    const popup = document.getElementById('sharePopup');
+    if (!popup) return;
+    popup.textContent = msg; popup.classList.add('show');
+    clearTimeout(_sharePopupTimer);
+    _sharePopupTimer = setTimeout(() => popup.classList.remove('show'), 2500);
+  };
+  if (navigator.share) { navigator.share(shareData).catch(() => {}); }
+  else if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => showSharePopup('🔗 Enlace copiado')); }
+  else {
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    showSharePopup('🔗 Enlace copiado');
+  }
+}
+
+// Botón atrás del navegador
+window.addEventListener("popstate", (e) => {
+  if (!e.state || !e.state.productId) {
+    _pdCurrentId = null;
+    showPage("shop");
+  }
+});
+
+function toSlug(str){
+  return (str||"")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/\./g,"-")
+    .replace(/[^a-z0-9\s-]/g,"")
+    .trim()
+    .replace(/\s+/g,"-")
+    .replace(/-+/g,"-");
 }
 
 // Init manejado por el módulo Firebase arriba
@@ -4050,6 +3984,7 @@ function downloadAldeaTemplate(){
 </div>
 
 
+
 <!-- ── PÁGINA: LOGIN / REGISTRO CLIENTE ────────────────────── -->
 <div class="page" id="page-client-login">
   <div class="client-wrap">
@@ -4059,8 +3994,6 @@ function downloadAldeaTemplate(){
         <h2>Mi Cuenta</h2>
         <p>Accede a tus pedidos y direcciones guardadas</p>
       </div>
-
-      <!-- Botones Sociales -->
       <button class="social-login-btn google-btn" onclick="clientLoginGoogle()">
         <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
         Continuar con Google
@@ -4069,33 +4002,24 @@ function downloadAldeaTemplate(){
         <svg viewBox="0 0 24 24"><path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
         Continuar con Facebook
       </button>
-
       <div class="client-divider">o continúa con tu correo</div>
-
-      <!-- Tabs Login / Registro -->
       <div class="client-tabs">
         <button class="client-tab active" id="clientTabLogin" onclick="switchClientTab('login')">Iniciar Sesión</button>
         <button class="client-tab" id="clientTabRegister" onclick="switchClientTab('register')">Crear Cuenta</button>
       </div>
-
       <div id="clientErrorBox" class="client-error"></div>
-
-      <!-- Formulario Login -->
       <div id="clientFormLogin">
         <div class="form-group"><label>Correo electrónico</label><input type="email" id="clientLoginEmail" placeholder="tu@correo.com" onkeydown="if(event.key==='Enter')clientLoginEmail_do()"></div>
         <div class="form-group"><label>Contraseña</label><input type="password" id="clientLoginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')clientLoginEmail_do()"></div>
         <button class="btn btn-primary" style="width:100%;margin-bottom:0.8rem" onclick="clientLoginEmail_do()">Ingresar</button>
         <button class="btn btn-ghost" style="width:100%;font-size:0.88rem" onclick="clientForgotPass()">¿Olvidaste tu contraseña?</button>
       </div>
-
-      <!-- Formulario Registro -->
       <div id="clientFormRegister" style="display:none">
         <div class="form-group"><label>Nombre completo</label><input type="text" id="clientRegName" placeholder="Tu nombre"></div>
         <div class="form-group"><label>Correo electrónico</label><input type="email" id="clientRegEmail" placeholder="tu@correo.com"></div>
         <div class="form-group"><label>Contraseña</label><input type="password" id="clientRegPass" placeholder="Mínimo 6 caracteres"></div>
         <button class="btn btn-primary" style="width:100%" onclick="clientRegister_do()">Crear Cuenta</button>
       </div>
-
     </div>
   </div>
 </div>
@@ -4103,7 +4027,6 @@ function downloadAldeaTemplate(){
 <!-- ── PÁGINA: DASHBOARD CLIENTE ───────────────────────────── -->
 <div class="page" id="page-client-dashboard">
   <div class="client-dashboard">
-    <!-- Perfil -->
     <div class="client-profile-bar">
       <div class="client-avatar-big" id="clientAvatarBig">👤</div>
       <div class="client-profile-info">
@@ -4112,37 +4035,22 @@ function downloadAldeaTemplate(){
       </div>
       <button class="btn btn-ghost" style="margin-left:auto;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);font-size:0.85rem;flex-shrink:0" onclick="clientLogout()">Salir</button>
     </div>
-
-    <!-- Tabs del dashboard -->
     <div class="client-section-tabs">
       <button class="client-section-tab active" onclick="switchClientDashTab('orders', this)">🛍️ Mis Pedidos</button>
       <button class="client-section-tab" onclick="switchClientDashTab('addresses', this)">📍 Mis Direcciones</button>
       <button class="client-section-tab" onclick="switchClientDashTab('profile', this)">⚙️ Mi Perfil</button>
     </div>
-
-    <!-- Panel: Pedidos -->
     <div class="client-panel active" id="cdash-orders">
-      <div id="clientOrdersList">
-        <div style="text-align:center;padding:3rem 1rem;color:var(--text-muted)">
-          <div style="font-size:3rem;margin-bottom:1rem">📦</div>
-          <p style="font-weight:600">Cargando tus pedidos...</p>
-        </div>
-      </div>
+      <div id="clientOrdersList"><div style="text-align:center;padding:3rem 1rem;color:var(--text-muted)"><div style="font-size:3rem;margin-bottom:1rem">📦</div><p style="font-weight:600">Cargando tus pedidos...</p></div></div>
     </div>
-
-    <!-- Panel: Direcciones -->
     <div class="client-panel" id="cdash-addresses">
       <div id="clientAddressList"></div>
       <button class="btn btn-primary" style="width:100%;margin-top:0.5rem" onclick="toggleAddAddressForm()">+ Agregar Nueva Dirección</button>
       <div class="add-address-form" id="addAddressForm">
         <h4 style="margin:0 0 1rem;font-family:'Plus Jakarta Sans'">Nueva Dirección</h4>
         <div class="form-group"><label>Alias (ej: Casa, Trabajo)</label><input type="text" id="addrAlias" placeholder="Casa"></div>
-        <div class="form-group"><label>Departamento</label>
-          <select id="addrDept" onchange="loadClientMunicipios()" style="width:100%"><option value="">Selecciona departamento</option></select>
-        </div>
-        <div class="form-group"><label>Municipio</label>
-          <select id="addrMun" style="width:100%"><option value="">Selecciona municipio</option></select>
-        </div>
+        <div class="form-group"><label>Departamento</label><select id="addrDept" onchange="loadClientMunicipios()" style="width:100%"><option value="">Selecciona departamento</option></select></div>
+        <div class="form-group"><label>Municipio</label><select id="addrMun" style="width:100%"><option value="">Selecciona municipio</option></select></div>
         <div class="form-group"><label>Dirección exacta</label><input type="text" id="addrDetail" placeholder="Calle, colonia, número..."></div>
         <div class="form-group"><label>Teléfono de contacto</label><input type="text" id="addrPhone" placeholder="502 XXXX XXXX"></div>
         <div style="display:flex;gap:0.8rem">
@@ -4151,8 +4059,6 @@ function downloadAldeaTemplate(){
         </div>
       </div>
     </div>
-
-    <!-- Panel: Perfil -->
     <div class="client-panel" id="cdash-profile">
       <div class="settings-card" style="max-width:100%;margin:0">
         <h4>Información Personal</h4>
@@ -4162,14 +4068,12 @@ function downloadAldeaTemplate(){
         <button class="btn btn-save" onclick="saveClientProfile()">Guardar Cambios</button>
       </div>
     </div>
-
   </div>
 </div>
-
 <!-- Footer derechos reservados -->
 <footer id="siteFooter" style="width:100%;text-align:center;padding:1.5rem 1rem 2rem;font-family:'Inter',sans-serif;font-size:0.78rem;color:#000;border-top:1px solid var(--border,#e5e7eb);background:var(--surface,#fff);letter-spacing:0.3px;margin-top:2rem;">
   <div id="socialIconsFooter" style="display:flex;justify-content:center;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem"></div>
-  © 2026 DS DISTRIBUIDORA SAN FRANCISCO TEMPORADA &nbsp;–&nbsp; Todos Los Derechos Reservados
+  © 2026 DS DISTRIBUIDORA SAN FRANCISCO NO.3 &nbsp;–&nbsp; Todos Los Derechos Reservados
 </footer>
 
 <script>
@@ -4271,26 +4175,18 @@ if(_origSwitch) window.switchAdminTab = function(tab, el){
 };
 </script>
 
+
 <script>
 // ══════════════════════════════════════════════════════════════
 //  SECCIÓN CLIENTE — Login, Registro, Dashboard
 // ══════════════════════════════════════════════════════════════
-
-// Estado del cliente logueado
 let _client = null;
 
-// Intentar restaurar sesión desde localStorage al iniciar
 document.addEventListener("DOMContentLoaded", () => {
   const saved = localStorage.getItem("lx_client_session");
-  if (saved) {
-    try {
-      _client = JSON.parse(saved);
-      updateClientNavbar();
-    } catch(e) {}
-  }
-  // Hook: cuando Firebase confirme la sesión del cliente
+  if (saved) { try { _client = JSON.parse(saved); updateClientNavbar(); } catch(e) {} }
   window._onClientLogin = (user) => {
-    if (user.email === "dsdistribuidorasanfrancisco@gmail.com") return; // es el admin
+    if (user.email === (typeof ADMIN_EMAIL !== "undefined" ? ADMIN_EMAIL : "")) return;
     _client = { uid: user.uid, name: user.displayName||"", email: user.email, photo: user.photoURL||"" };
     localStorage.setItem("lx_client_session", JSON.stringify(_client));
     updateClientNavbar();
@@ -4308,12 +4204,7 @@ function updateClientNavbar() {
     if (label) label.textContent = (_client.name||"Mi Cuenta").split(" ")[0];
     if (avatar) {
       avatar.style.display = "flex";
-      if (_client.photo) {
-        avatar.innerHTML = `<img src="${_client.photo}" style="width:22px;height:22px;border-radius:50%;object-fit:cover">`;
-      } else {
-        avatar.innerHTML = (_client.name||"?").charAt(0).toUpperCase();
-        avatar.style.display = "flex";
-      }
+      avatar.innerHTML = _client.photo ? `<img src="${_client.photo}" style="width:22px;height:22px;border-radius:50%;object-fit:cover">` : (_client.name||"?").charAt(0).toUpperCase();
     }
     if (icon) icon.style.display = "none";
     if (btn) btn.onclick = () => { showPage("client-dashboard"); loadClientDashboard(); };
@@ -4325,7 +4216,6 @@ function updateClientNavbar() {
   }
 }
 
-// ── Tabs Login/Registro ────────────────────────────────────────
 function switchClientTab(tab) {
   document.getElementById("clientTabLogin").classList.toggle("active", tab==="login");
   document.getElementById("clientTabRegister").classList.toggle("active", tab==="register");
@@ -4341,36 +4231,23 @@ function setClientError(msg) {
   el.classList.toggle("show", !!msg);
 }
 
-// ── Login con Email ────────────────────────────────────────────
 async function clientLoginEmail_do() {
   const email = document.getElementById("clientLoginEmail").value.trim();
   const pass  = document.getElementById("clientLoginPass").value;
   if (!email || !pass) { setClientError("Ingresa tu correo y contraseña."); return; }
   setClientError("");
-  const btn = event?.target;
-  if (btn) btn.textContent = "Ingresando...";
   const res = await window._clientAuth.loginEmail(email, pass);
-  if (btn) btn.textContent = "Ingresar";
   if (res.ok) {
     _client = { uid: res.user.uid, name: res.user.displayName||"", email: res.user.email, photo: res.user.photoURL||"" };
     localStorage.setItem("lx_client_session", JSON.stringify(_client));
-    updateClientNavbar();
-    showPage("client-dashboard");
-    loadClientDashboard();
+    updateClientNavbar(); showPage("client-dashboard"); loadClientDashboard();
   } else {
-    const msgs = {
-      "auth/user-not-found": "No existe una cuenta con ese correo.",
-      "auth/wrong-password": "Contraseña incorrecta.",
-      "auth/invalid-email": "Correo no válido.",
-      "auth/too-many-requests": "Demasiados intentos. Intenta más tarde.",
-      "auth/invalid-credential": "Correo o contraseña incorrectos."
-    };
+    const msgs = {"auth/user-not-found":"No existe una cuenta con ese correo.","auth/wrong-password":"Contraseña incorrecta.","auth/invalid-email":"Correo no válido.","auth/too-many-requests":"Demasiados intentos. Intenta más tarde.","auth/invalid-credential":"Correo o contraseña incorrectos."};
     const code = res.err.match(/\(([^)]+)\)/)?.[1] || "";
     setClientError(msgs[code] || "Error al iniciar sesión. Verifica tus datos.");
   }
 }
 
-// ── Registro con Email ─────────────────────────────────────────
 async function clientRegister_do() {
   const name  = document.getElementById("clientRegName").value.trim();
   const email = document.getElementById("clientRegEmail").value.trim();
@@ -4383,25 +4260,16 @@ async function clientRegister_do() {
   if (res.ok) {
     _client = { uid: res.user.uid, name, email, photo: "" };
     localStorage.setItem("lx_client_session", JSON.stringify(_client));
-    if (window._fb && window._fb.ready()) {
-      window._fb.saveCustomerProfile(res.user.uid, { name, email, phone: "" });
-    }
-    updateClientNavbar();
-    toast("¡Bienvenido, " + name + "!", "success");
-    showPage("client-dashboard");
-    loadClientDashboard();
+    if (window._fb && window._fb.ready()) window._fb.saveCustomerProfile(res.user.uid, { name, email, phone: "" });
+    updateClientNavbar(); toast("¡Bienvenido, " + name + "!", "success");
+    showPage("client-dashboard"); loadClientDashboard();
   } else {
-    const msgs = {
-      "auth/email-already-in-use": "Ya existe una cuenta con ese correo. Inicia sesión.",
-      "auth/invalid-email": "Correo no válido.",
-      "auth/weak-password": "La contraseña es muy débil."
-    };
+    const msgs = {"auth/email-already-in-use":"Ya existe una cuenta con ese correo. Inicia sesión.","auth/invalid-email":"Correo no válido.","auth/weak-password":"La contraseña es muy débil."};
     const code = res.err.match(/\(([^)]+)\)/)?.[1] || "";
     setClientError(msgs[code] || "Error al crear la cuenta.");
   }
 }
 
-// ── Login con Google ───────────────────────────────────────────
 async function clientLoginGoogle() {
   setClientError("");
   const res = await window._clientAuth?.loginGoogle();
@@ -4409,18 +4277,11 @@ async function clientLoginGoogle() {
   if (res.ok) {
     _client = { uid: res.user.uid, name: res.user.displayName||"", email: res.user.email, photo: res.user.photoURL||"" };
     localStorage.setItem("lx_client_session", JSON.stringify(_client));
-    if (window._fb && window._fb.ready()) {
-      window._fb.saveCustomerProfile(res.user.uid, { name: _client.name, email: _client.email, phone: "" });
-    }
-    updateClientNavbar();
-    showPage("client-dashboard");
-    loadClientDashboard();
-  } else {
-    if (!res.err.includes("popup-closed")) setClientError("No se pudo iniciar sesión con Google.");
-  }
+    if (window._fb && window._fb.ready()) window._fb.saveCustomerProfile(res.user.uid, { name: _client.name, email: _client.email, phone: "" });
+    updateClientNavbar(); showPage("client-dashboard"); loadClientDashboard();
+  } else { if (!res.err.includes("popup-closed")) setClientError("No se pudo iniciar sesión con Google."); }
 }
 
-// ── Login con Facebook ─────────────────────────────────────────
 async function clientLoginFacebook() {
   setClientError("");
   const res = await window._clientAuth?.loginFacebook();
@@ -4428,31 +4289,19 @@ async function clientLoginFacebook() {
   if (res.ok) {
     _client = { uid: res.user.uid, name: res.user.displayName||"", email: res.user.email||"", photo: res.user.photoURL||"" };
     localStorage.setItem("lx_client_session", JSON.stringify(_client));
-    if (window._fb && window._fb.ready()) {
-      window._fb.saveCustomerProfile(res.user.uid, { name: _client.name, email: _client.email, phone: "" });
-    }
-    updateClientNavbar();
-    showPage("client-dashboard");
-    loadClientDashboard();
-  } else {
-    if (!res.err.includes("popup-closed")) setClientError("No se pudo iniciar sesión con Facebook.");
-  }
+    if (window._fb && window._fb.ready()) window._fb.saveCustomerProfile(res.user.uid, { name: _client.name, email: _client.email, phone: "" });
+    updateClientNavbar(); showPage("client-dashboard"); loadClientDashboard();
+  } else { if (!res.err.includes("popup-closed")) setClientError("No se pudo iniciar sesión con Facebook."); }
 }
 
-// ── Olvidé contraseña ──────────────────────────────────────────
 async function clientForgotPass() {
   const email = document.getElementById("clientLoginEmail").value.trim();
   if (!email) { setClientError("Ingresa tu correo primero para restablecer tu contraseña."); return; }
   const res = await window._clientAuth.resetPassword(email);
-  if (res.ok) {
-    setClientError("");
-    toast("Te enviamos un correo para restablecer tu contraseña.", "success");
-  } else {
-    setClientError("No se pudo enviar el correo. Verifica la dirección.");
-  }
+  if (res.ok) { setClientError(""); toast("Te enviamos un correo para restablecer tu contraseña.", "success"); }
+  else setClientError("No se pudo enviar el correo. Verifica la dirección.");
 }
 
-// ── Cerrar sesión cliente ──────────────────────────────────────
 function clientLogout() {
   _client = null;
   localStorage.removeItem("lx_client_session");
@@ -4462,33 +4311,20 @@ function clientLogout() {
   toast("Sesión cerrada", "success");
 }
 
-// ══════════════════════════════════════════════════════════════
-//  DASHBOARD DEL CLIENTE
-// ══════════════════════════════════════════════════════════════
 function loadClientDashboard() {
   if (!_client) return;
-  // Header
   const nameEl = document.getElementById("clientDashName");
   const emailEl = document.getElementById("clientDashEmail");
   const avatarEl = document.getElementById("clientAvatarBig");
   if (nameEl)  nameEl.textContent = _client.name || "Mi Cuenta";
   if (emailEl) emailEl.textContent = _client.email;
-  if (avatarEl) {
-    if (_client.photo) {
-      avatarEl.innerHTML = `<img src="${_client.photo}" alt="">`;
-    } else {
-      avatarEl.textContent = (_client.name||"?").charAt(0).toUpperCase();
-    }
-  }
-  // Perfil
+  if (avatarEl) avatarEl.innerHTML = _client.photo ? `<img src="${_client.photo}" alt="">` : (_client.name||"?").charAt(0).toUpperCase();
   const pName  = document.getElementById("profileName");
   const pEmail = document.getElementById("profileEmail");
   if (pName)  pName.value  = _client.name || "";
   if (pEmail) pEmail.value = _client.email || "";
-  // Cargar pedidos y direcciones
   loadClientOrders();
   loadClientAddresses();
-  // Cargar selects de departamento para nueva dirección
   loadClientDeptSelect();
 }
 
@@ -4499,64 +4335,28 @@ function switchClientDashTab(tab, el) {
   document.getElementById("cdash-" + tab).classList.add("active");
 }
 
-// ── Pedidos ────────────────────────────────────────────────────
 async function loadClientOrders() {
   const container = document.getElementById("clientOrdersList");
   if (!container || !_client) return;
-  container.innerHTML = "<div style='text-align:center;padding:2rem;color:var(--text-muted)'><div style='font-size:2rem'>⏳</div><p>Cargando pedidos...</p></div>";
-
+  container.innerHTML = "<div style=\'text-align:center;padding:2rem;color:var(--text-muted)\'><div style=\'font-size:2rem\'>⏳</div><p>Cargando pedidos...</p></div>";
   let clientOrders = [];
-
-  // Buscar en Firebase por UID si está disponible
-  if (window._fb && window._fb.ready()) {
-    try {
-      clientOrders = await window._fb.getCustomerOrders(_client.uid);
-    } catch(e) {}
-  }
-
-  // Si no hay resultados por UID, buscar en localStorage por email/contacto
+  if (window._fb && window._fb.ready()) { try { clientOrders = await window._fb.getCustomerOrders(_client.uid); } catch(e) {} }
   if (!clientOrders.length && typeof orders !== "undefined") {
     const emailLower = (_client.email||"").toLowerCase();
     const nameLower  = (_client.name||"").toLowerCase();
-    clientOrders = orders.filter(o =>
-      (o.customer?.contact||"").toLowerCase().includes(emailLower) ||
-      (emailLower && (o.customer?.name||"").toLowerCase() === nameLower)
-    );
+    clientOrders = orders.filter(o => (o.customer?.contact||"").toLowerCase().includes(emailLower) || (emailLower && (o.customer?.name||"").toLowerCase() === nameLower));
   }
-
   if (!clientOrders.length) {
-    container.innerHTML = `
-      <div style="text-align:center;padding:3rem 1rem;color:var(--text-muted)">
-        <div style="font-size:3.5rem;margin-bottom:1rem">📦</div>
-        <p style="font-weight:700;font-size:1.05rem;color:var(--dark)">Aún no tienes pedidos</p>
-        <p style="font-size:0.9rem;margin-bottom:1.5rem">Tus compras aparecerán aquí</p>
-        <button class="btn btn-primary" onclick="showPage('shop')">Ver Catálogo</button>
-      </div>`;
+    container.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:var(--text-muted)"><div style="font-size:3.5rem;margin-bottom:1rem">📦</div><p style="font-weight:700;font-size:1.05rem;color:var(--dark)">Aún no tienes pedidos</p><p style="font-size:0.9rem;margin-bottom:1.5rem">Tus compras aparecerán aquí</p><button class="btn btn-primary" onclick="showPage(\'shop\')">Ver Catálogo</button></div>`;
     return;
   }
-
   const sorted = [...clientOrders].sort((a,b) => b.date - a.date);
-  const STEPS = ["Pendiente","En Proceso","En Ruta","Entregado","Cancelado"];
-  const statusColor = { "Pendiente":"var(--orange)","En Proceso":"var(--accent)","En Ruta":"var(--blue,#3b82f6)","Entregado":"var(--green)","Cancelado":"var(--red)" };
-
+  const statusColor = { "Pendiente":"var(--orange)","En Proceso":"var(--accent)","En Ruta":"#3b82f6","Entregado":"var(--green)","Cancelado":"var(--red)" };
   container.innerHTML = sorted.map(o => {
     const date = new Date(o.date).toLocaleDateString("es-GT",{year:"numeric",month:"short",day:"numeric"});
     const itemsText = (o.items||[]).slice(0,2).map(i => i.name + " x" + i.qty).join(", ") + ((o.items||[]).length > 2 ? ` y ${o.items.length-2} más` : "");
     const color = statusColor[o.status] || "var(--text-muted)";
-    return `<div class="client-order-card" onclick="clientTrackOrder('${o.id}')">
-      <div class="client-order-top">
-        <div>
-          <div class="client-order-id">Pedido #${o.id}</div>
-          <div class="client-order-date">${date}</div>
-        </div>
-        <span class="status-badge ${(o.status||"").replace(/ /g,"")}" style="background:${color}20;color:${color};border:1px solid ${color}40">${o.status||"Pendiente"}</span>
-      </div>
-      <div class="client-order-items">${itemsText || "Sin detalles"}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="client-order-total">Q${(o.total||0).toFixed(2)}</div>
-        <span style="font-size:0.82rem;color:var(--accent);font-weight:600">Ver estado →</span>
-      </div>
-    </div>`;
+    return `<div class="client-order-card" onclick="clientTrackOrder(\'${o.id}\')"><div class="client-order-top"><div><div class="client-order-id">Pedido #${o.id}</div><div class="client-order-date">${date}</div></div><span class="status-badge ${(o.status||"").replace(/ /g,"")}" style="background:${color}20;color:${color};border:1px solid ${color}40">${o.status||"Pendiente"}</span></div><div class="client-order-items">${itemsText||"Sin detalles"}</div><div style="display:flex;justify-content:space-between;align-items:center"><div class="client-order-total">Q${(o.total||0).toFixed(2)}</div><span style="font-size:0.82rem;color:var(--accent);font-weight:600">Ver estado →</span></div></div>`;
   }).join("");
 }
 
@@ -4566,53 +4366,27 @@ function clientTrackOrder(orderId) {
   doTrack();
 }
 
-// ── Direcciones ────────────────────────────────────────────────
 async function loadClientAddresses() {
   const container = document.getElementById("clientAddressList");
   if (!container || !_client) return;
-
   let addrs = [];
-  if (window._fb && window._fb.ready()) {
-    try { addrs = await window._fb.getCustomerAddresses(_client.uid); } catch(e) {}
-  }
-  if (!addrs.length) {
-    const saved = localStorage.getItem("lx_client_addresses_" + _client.uid);
-    if (saved) try { addrs = JSON.parse(saved); } catch(e) {}
-  }
-
-  if (!addrs.length) {
-    container.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-muted)">
-      <div style="font-size:2.5rem;margin-bottom:0.8rem">📍</div>
-      <p style="font-weight:600">No tienes direcciones guardadas</p></div>`;
-    return;
-  }
-
-  container.innerHTML = addrs.map(a => `
-    <div class="client-address-card">
-      <div style="flex:1">
-        <div class="client-address-label">📍 ${a.alias || "Dirección"}</div>
-        <div class="client-address-detail">${[a.dept, a.mun, a.detail].filter(Boolean).join(", ")}</div>
-        ${a.phone ? `<div style="font-size:0.82rem;color:var(--accent);margin-top:0.3rem">📞 ${a.phone}</div>` : ""}
-      </div>
-      <button class="btn-address-del" onclick="deleteClientAddress('${a._key}')" title="Eliminar">🗑</button>
-    </div>`).join("");
+  if (window._fb && window._fb.ready()) { try { addrs = await window._fb.getCustomerAddresses(_client.uid); } catch(e) {} }
+  if (!addrs.length) { const saved = localStorage.getItem("lx_client_addresses_" + _client.uid); if (saved) try { addrs = JSON.parse(saved); } catch(e) {} }
+  if (!addrs.length) { container.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:0.8rem">📍</div><p style="font-weight:600">No tienes direcciones guardadas</p></div>`; return; }
+  container.innerHTML = addrs.map(a => `<div class="client-address-card"><div style="flex:1"><div class="client-address-label">📍 ${a.alias||"Dirección"}</div><div class="client-address-detail">${[a.dept,a.mun,a.detail].filter(Boolean).join(", ")}</div>${a.phone?`<div style="font-size:0.82rem;color:var(--accent);margin-top:0.3rem">📞 ${a.phone}</div>`:""}</div><button class="btn-address-del" onclick="deleteClientAddress(\'${a._key}\')" title="Eliminar">🗑</button></div>`).join("");
 }
 
 function toggleAddAddressForm() {
-  const form = document.getElementById("addAddressForm");
-  form.classList.toggle("open");
+  document.getElementById("addAddressForm").classList.toggle("open");
 }
 
 function loadClientDeptSelect() {
   const sel = document.getElementById("addrDept");
   if (!sel) return;
-  // Reutilizar geodata del sistema principal
   const geoData = window._geoData || window._fbInitGeoData;
   if (!geoData || !geoData.departments) return;
   sel.innerHTML = '<option value="">Selecciona departamento</option>';
-  geoData.departments.forEach(d => {
-    sel.innerHTML += `<option value="${d.name}">${d.name}</option>`;
-  });
+  geoData.departments.forEach(d => { sel.innerHTML += `<option value="${d.name}">${d.name}</option>`; });
 }
 
 function loadClientMunicipios() {
@@ -4624,9 +4398,7 @@ function loadClientMunicipios() {
   if (!geoData || !geoData.departments) return;
   const deptObj = geoData.departments.find(d => d.name === dept);
   if (!deptObj || !deptObj.municipalities) return;
-  deptObj.municipalities.forEach(m => {
-    munSel.innerHTML += `<option value="${m.name}">${m.name}</option>`;
-  });
+  deptObj.municipalities.forEach(m => { munSel.innerHTML += `<option value="${m.name}">${m.name}</option>`; });
 }
 
 async function saveClientAddress() {
@@ -4638,18 +4410,10 @@ async function saveClientAddress() {
   const phone  = document.getElementById("addrPhone").value.trim();
   if (!dept || !mun) { toast("Selecciona departamento y municipio", "error"); return; }
   const addr = { alias, dept, mun, detail, phone, createdAt: Date.now() };
-  if (window._fb && window._fb.ready()) {
-    const key = await window._fb.saveCustomerAddress(_client.uid, null, addr);
-    addr._key = key;
-  } else {
-    addr._key = "addr_" + Date.now();
-    const saved = JSON.parse(localStorage.getItem("lx_client_addresses_" + _client.uid) || "[]");
-    saved.push(addr);
-    localStorage.setItem("lx_client_addresses_" + _client.uid, JSON.stringify(saved));
-  }
+  if (window._fb && window._fb.ready()) { const key = await window._fb.saveCustomerAddress(_client.uid, null, addr); addr._key = key; }
+  else { addr._key = "addr_" + Date.now(); const saved = JSON.parse(localStorage.getItem("lx_client_addresses_" + _client.uid) || "[]"); saved.push(addr); localStorage.setItem("lx_client_addresses_" + _client.uid, JSON.stringify(saved)); }
   toast("Dirección guardada", "success");
   toggleAddAddressForm();
-  // Limpiar
   ["addrAlias","addrDetail","addrPhone"].forEach(id => { const el=document.getElementById(id); if(el) el.value=""; });
   document.getElementById("addrDept").value = "";
   document.getElementById("addrMun").innerHTML = '<option value="">Selecciona municipio</option>';
@@ -4659,18 +4423,12 @@ async function saveClientAddress() {
 async function deleteClientAddress(key) {
   if (!_client || !key) return;
   if (!confirm("¿Eliminar esta dirección?")) return;
-  if (window._fb && window._fb.ready()) {
-    await window._fb.deleteCustomerAddress(_client.uid, key);
-  } else {
-    const saved = JSON.parse(localStorage.getItem("lx_client_addresses_" + _client.uid) || "[]");
-    const filtered = saved.filter(a => a._key !== key);
-    localStorage.setItem("lx_client_addresses_" + _client.uid, JSON.stringify(filtered));
-  }
+  if (window._fb && window._fb.ready()) await window._fb.deleteCustomerAddress(_client.uid, key);
+  else { const saved = JSON.parse(localStorage.getItem("lx_client_addresses_" + _client.uid) || "[]"); localStorage.setItem("lx_client_addresses_" + _client.uid, JSON.stringify(saved.filter(a => a._key !== key))); }
   toast("Dirección eliminada", "success");
   loadClientAddresses();
 }
 
-// ── Perfil ─────────────────────────────────────────────────────
 async function saveClientProfile() {
   if (!_client) return;
   const name  = document.getElementById("profileName").value.trim();
@@ -4679,30 +4437,11 @@ async function saveClientProfile() {
   _client.name = name;
   localStorage.setItem("lx_client_session", JSON.stringify(_client));
   updateClientNavbar();
-  if (window._fb && window._fb.ready()) {
-    await window._fb.saveCustomerProfile(_client.uid, { name, phone });
-  }
+  if (window._fb && window._fb.ready()) await window._fb.saveCustomerProfile(_client.uid, { name, phone });
   document.getElementById("clientDashName").textContent = name;
   toast("Perfil actualizado", "success");
 }
-
-// ── Vincular pedido al cliente al hacer checkout ───────────────
-// Se ejecuta después de que se crea un pedido exitosamente
-const _origPlaceOrder = window.placeOrder;
-document.addEventListener("DOMContentLoaded", () => {
-  // Interceptar el botón de finalizar pedido para vincular UID
-  const _origConfirm = window.confirmOrder;
-  if (typeof window.confirmOrder === "function") {
-    window.confirmOrder = async function() {
-      await _origConfirm?.();
-      // Si hay cliente, vincular el último pedido
-      if (_client && window._fb && window._fb.ready() && typeof orders !== "undefined" && orders.length) {
-        const lastOrder = orders[orders.length - 1];
-        if (lastOrder && lastOrder._key) {
-          window._fb.linkOrderToCustomer(lastOrder._key, _client.uid).catch(()=>{});
-        }
-      }
-    };
-  }
-});
 </script>
+
+</body>
+</html>
