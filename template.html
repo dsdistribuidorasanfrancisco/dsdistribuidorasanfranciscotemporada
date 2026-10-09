@@ -891,8 +891,10 @@ h1, h2, h3, h4, .section-title, .nav-logo { font-family: "Plus Jakarta Sans", sa
 
 </style>
   <!-- Favicon (logo pequeño en la pestaña) -->
-  <link rel="icon" type="image/png" href="https://TU-URL-DEL-LOGO.png">
-  <link rel="apple-touch-icon" href="https://TU-URL-DEL-LOGO.png">
+  <link rel="icon" type="image/png" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#008000">
   <!-- Open Graph: imagen que aparece al compartir en WhatsApp -->
   <!-- OG_META_START -->
   <meta property="og:title" content="DS Distribuidora San Francisco">
@@ -4785,5 +4787,12 @@ function openLogoPreview() {
     // así el URL del navegador muestra el link real de la imagen.
     window.location.href = logoUrl;
   }
+}
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
 }
 </script>
